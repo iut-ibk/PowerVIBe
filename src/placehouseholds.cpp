@@ -186,3 +186,8 @@ void PlaceHouseholds::run()
     Logger(Debug) << "Created Persons " << person_id;
 }
 
+string PlaceHouseholds::getHelpUrl()
+{
+    return "https://docs.google.com/document/pub?id=1xEXR-Jd82a496RVrfw5nNz6ZnFN-2EwZ-u0U3FCY7ns";
+}
+

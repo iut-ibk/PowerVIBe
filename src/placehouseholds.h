@@ -46,6 +46,7 @@ class DM_HELPER_DLL_EXPORT PlaceHouseholds : public Module
     public:
         PlaceHouseholds();
         void run();
+        std::string getHelpUrl();
 };
 
 #endif // PLACEHOUSEHOLDS_H
