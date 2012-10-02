@@ -4,9 +4,9 @@
  * @version 1.0
  * @section LICENSE
  *
- * This file is part of DynaMind
+ * This file is part of VIBe2
  *
- * Copyright (C) 2012  Christian Urich
+ * Copyright (C) 2011  Christian Urich
 
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -24,16 +24,25 @@
  *
  */
 
-#include <dmmoduleregistry.h>
-#include <dmnodefactory.h>
-#include <placehouseholds.h>
-#include <placejobs.h>
-#include <annualemploymentcontrol.h>
+#ifndef ANNUALEMPLOYMENTCONTROL_H
+#define ANNUALEMPLOYMENTCONTROL_H
+
+#include <dm.h>
+#include <dmmodule.h>
 
 using namespace DM;
 
-extern "C" void DM_HELPER_DLL_EXPORT  registerModules(ModuleRegistry *registry) {
-    registry->addNodeFactory(new NodeFactory<PlaceHouseholds>());
-    registry->addNodeFactory(new NodeFactory<PlaceJobs>());
-    registry->addNodeFactory(new NodeFactory<AnnualEmploymentControl>());
-}
+class DM_HELPER_DLL_EXPORT AnnualEmploymentControl : public DM::Module
+{
+    DM_DECLARE_NODE(AnnualEmploymentControl)
+private:
+        DM::View city;
+        double growthRate;
+        int startYear;
+        int endYear;
+public:
+    AnnualEmploymentControl();
+    void run();
+};
+
+#endif // ANNUALEMPLOYMENTCONTROL_H
