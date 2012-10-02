@@ -24,14 +24,26 @@
  *
  */
 
-#include <dmmoduleregistry.h>
-#include <dmnodefactory.h>
-#include <placehouseholds.h>
-#include <placejobs.h>
+
+#ifndef PLACEJOBS_H
+#define PLACEJOBS_H
+
+#include <dmmodule.h>
+#include <dm.h>
 
 using namespace DM;
 
-extern "C" void DM_HELPER_DLL_EXPORT  registerModules(ModuleRegistry *registry) {
-    registry->addNodeFactory(new NodeFactory<PlaceHouseholds>());
-    registry->addNodeFactory(new NodeFactory<PlaceJobs>());
-}
+class DM_HELPER_DLL_EXPORT PlaceJobs : public Module
+{
+    DM_DECLARE_NODE(PlaceJobs)
+    private:
+                DM::View grids;
+                DM::View jobs;
+                DM::View buildings;
+public:
+    void run();
+    PlaceJobs();
+    std::string getHelpUrl();
+};
+
+#endif // PLACEJOBS_H
