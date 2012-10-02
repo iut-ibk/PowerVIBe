@@ -101,12 +101,12 @@ void PlaceJobs::run() {
                 job->addAttribute("id", job_id);
                 job->addAttribute("home_based_status", 0);
                 job->addAttribute("sector_id", 1);
-                Attribute lAttr;
+                Attribute lAttr("BUILDING");
                 lAttr.setLink("BUILDING", b->getUUID());
                 job->addAttribute(lAttr);
                 city->addComponent(job, jobs);
                 Attribute * lBAttr = b->getAttribute("JOB");
-                lBAttr->setLink("JOB", b->getUUID());
+                lBAttr->setLink("JOB",job->getUUID());
 
             }
             b->addAttribute("non_residential_sqft", 25*jobsInBuilding*1.1);
