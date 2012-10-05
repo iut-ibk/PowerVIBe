@@ -85,7 +85,6 @@ PlaceHouseholds::PlaceHouseholds()
     households.addAttribute("income");
     households.addAttribute("age_of_head");
     households.addAttribute("race_id");
-    households.addAttribute("workers");
     households.addAttribute("children");
     households.addAttribute("cars");
 
@@ -157,7 +156,6 @@ void PlaceHouseholds::run()
               h->addAttribute("income", 1000);
               h->addAttribute("age_of_head", 50);
               h->addAttribute("race_id", 1);
-              h->addAttribute("workers", 1);
               int children = 0;
               if (chooser+1 > 2)
                   children = 1;

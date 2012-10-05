@@ -32,7 +32,7 @@
 
 using namespace DM;
 
-class DM_HELPER_DLL_EXPORT AnnualEmploymentControl : public DM::Module
+class DM_HELPER_DLL_EXPORT AnnualEmploymentControl : public Module
 {
     DM_DECLARE_NODE(AnnualEmploymentControl)
 private:
@@ -43,6 +43,7 @@ private:
 public:
     AnnualEmploymentControl();
     void run();
+    std::string getHelpUrl();
 };
 
 #endif // ANNUALEMPLOYMENTCONTROL_H

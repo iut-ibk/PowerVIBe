@@ -40,6 +40,10 @@ class DM_HELPER_DLL_EXPORT PlaceJobs : public Module
                 DM::View grids;
                 DM::View jobs;
                 DM::View buildings;
+
+                DM::View households;
+                DM::View persons;
+
 public:
     void run();
     PlaceJobs();

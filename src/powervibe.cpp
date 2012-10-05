@@ -29,6 +29,7 @@
 #include <placehouseholds.h>
 #include <placejobs.h>
 #include <annualemploymentcontrol.h>
+#include <annualhouseholdcontroltotals.h>
 
 using namespace DM;
 
@@ -36,4 +37,5 @@ extern "C" void DM_HELPER_DLL_EXPORT  registerModules(ModuleRegistry *registry) 
     registry->addNodeFactory(new NodeFactory<PlaceHouseholds>());
     registry->addNodeFactory(new NodeFactory<PlaceJobs>());
     registry->addNodeFactory(new NodeFactory<AnnualEmploymentControl>());
+    registry->addNodeFactory(new NodeFactory<AnnualHouseholdControlTotals>());
 }
