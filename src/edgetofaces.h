@@ -24,20 +24,25 @@
  *
  */
 
-#include <dmmoduleregistry.h>
-#include <dmnodefactory.h>
-#include <placehouseholds.h>
-#include <placejobs.h>
-#include <annualemploymentcontrol.h>
-#include <annualhouseholdcontroltotals.h>
-#include <edgetofaces.h>
+#ifndef EDGETOFACES_H
+#define EDGETOFACES_H
+
+#include <dm.h>
 
 using namespace DM;
+class EdgeToFaces : public Module
+{
+    DM_DECLARE_NODE(EdgeToFaces)
+    private:
+        std::string newFaceName;
+    std::string edgeLayerName;
+    DM::View edgeLayer;
+    DM::View newFace;
 
-extern "C" void DM_HELPER_DLL_EXPORT  registerModules(ModuleRegistry *registry) {
-    registry->addNodeFactory(new NodeFactory<PlaceHouseholds>());
-    registry->addNodeFactory(new NodeFactory<PlaceJobs>());
-    registry->addNodeFactory(new NodeFactory<AnnualEmploymentControl>());
-    registry->addNodeFactory(new NodeFactory<AnnualHouseholdControlTotals>());
-    registry->addNodeFactory(new NodeFactory<EdgeToFaces>());
-}
+public:
+    void init();
+    EdgeToFaces();
+    void run();
+};
+
+#endif // EDGETOFACES_H
