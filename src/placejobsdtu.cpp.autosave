@@ -1,0 +1,12 @@
+#include "placejobsdtu.h"
+
+DM_DECLARE_NODE_NAME(PlaceJobsDTU, UrbanSim)
+PlaceJobsDTU::PlaceJobsDTU()
+{
+}
+
+void PlaceJobsDTU::run()
+{
+}
+
+
