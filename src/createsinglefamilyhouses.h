@@ -11,7 +11,6 @@ class CreateSingleFamilyHouses : public Module
 private:
     DM::View houses;
     DM::View parcels;
-    Node getLowerLeftCorner(DM::System * sys, DM::Face * f);
 public:
     CreateSingleFamilyHouses();
     void run();
