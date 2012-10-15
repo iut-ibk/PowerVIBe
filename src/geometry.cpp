@@ -272,7 +272,7 @@ DM::System Geometry::ShapeFinder(DM::System * sys, DM::View & id, DM::View & ret
     return return_vec;
 }
 
-double Geometry::CalculateMinBoundingBox(std::vector<Node*> nodes, std::vector<DM::Node> & boundingBox) {
+double Geometry::calculateMinBoundingBox(std::vector<Node*> nodes, std::vector<DM::Node> & boundingBox) {
     typedef double                          FT;
     typedef CGAL::Cartesian<FT>             K;
     typedef K::Point_2                      Point_2;

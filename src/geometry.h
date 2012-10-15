@@ -103,7 +103,7 @@ namespace DM {
 
 
 
-        static double CalculateMinBoundingBox(std::vector<Node*> nodes, std::vector<Node> &boundingBox);
+        static double calculateMinBoundingBox(std::vector<Node*> nodes, std::vector<Node> &boundingBox);
 
         //static void extrudeFace(std::vector<Point> &v, std::vector<Face> & vf, float height);
 
