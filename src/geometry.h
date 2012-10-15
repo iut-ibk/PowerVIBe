@@ -100,12 +100,14 @@ namespace DM {
         static Segment_list_2 PolyLineToSegments(const Polyline_list_2 & poly_list);
 
         static float NumberTypetoFloat(Number_type n);
-        /*static void extrudeFace(std::vector<Point> &v, std::vector<Face> & vf, float height);
-
-        static VectorData  DrawTemperaturAnomaly(Point p, double l1, double l2, double b, double T);
-        static double CalculateBoundingBox(std::vector<Point> points);
 
 
+
+        static double CalculateMinBoundingBox(std::vector<Node*> nodes, std::vector<Node> &boundingBox);
+
+        //static void extrudeFace(std::vector<Point> &v, std::vector<Face> & vf, float height);
+
+         /*static VectorData  DrawTemperaturAnomaly(Point p, double l1, double l2, double b, double T);
         static VectorData createRaster(std::vector<Point> & points, double width, double height);
         static std::vector<Point> offsetPolygon(std::vector<Point> points);*/
 

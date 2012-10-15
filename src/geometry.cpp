@@ -272,6 +272,47 @@ DM::System Geometry::ShapeFinder(DM::System * sys, DM::View & id, DM::View & ret
     return return_vec;
 }
 
+double Geometry::CalculateMinBoundingBox(std::vector<Node*> nodes, std::vector<DM::Node> & boundingBox) {
+    typedef double                          FT;
+    typedef CGAL::Cartesian<FT>             K;
+    typedef K::Point_2                      Point_2;
+    typedef CGAL::Aff_transformation_2<K>   Transformation;
+    double pi =  3.14159265;
+    double area = -1;
+    double angel = 0;
+    for (double i = 0; i < 180; i++) {
+        Transformation rotate(CGAL::ROTATION, sin(i/180.*pi), cos(i/180.*pi));
+        std::list<Point_2> points_2;
+
+        foreach(Node * n, nodes) {
+            points_2.push_back(rotate(Point_2(n->getX(), n->getY())));
+        }
+
+        K::Iso_rectangle_2 c2 = CGAL::bounding_box(points_2.begin(), points_2.end());
+        double a = c2.area();
+        if (area < 0 || a < area ) {
+            area = a;
+            angel = i;
+        }
+
+    }
+
+    //caluclate final bounding box
+    Transformation rotate(CGAL::ROTATION, sin(angel/180.*pi), cos(angel/180.*pi));
+    std::list<Point_2> points_2;
+    foreach(Node * n, nodes) {
+        points_2.push_back(rotate(Point_2(n->getX(), n->getY())));
+    }
+    K::Iso_rectangle_2 c2 = CGAL::bounding_box(points_2.begin(), points_2.end());
+    for (int i = 0; i < 4; i++) {
+        Point_2 p = c2.vertex(0);
+        boundingBox.push_back(DM::Node(CGAL::to_double(p.x()),CGAL::to_double(p.y()), 0));
+    }
+
+    return angel;
+}
+
+
 /*void Geometry::extrudeFace(std::vector<Point> &vp, std::vector<Face> & vf, float height) {
     //Create Upper Points
     std::vector<long> opposite_ids;
@@ -493,33 +534,6 @@ VectorData Geometry::DrawTemperaturAnomaly(Point p, double l1, double l2, double
 
 }
 
-double Geometry::CalculateBoundingBox(std::vector<Point> points) {
-    typedef double              FT;
-    typedef CGAL::Cartesian<FT> K;
-    typedef K::Point_2          Point_2;
-    typedef CGAL::Aff_transformation_2<K>  Transformation;
-    //typedef K::Point_3          Point_3;
-    double pi =  3.14159265;
-    double area = -1;
-    double angel = 0;
-    for (double i = 0; i < 180; i++) {
-        Transformation rotate(CGAL::ROTATION, sin(i/180.*pi), cos(i/180.*pi));
-        std::list<Point_2> points_2;
-
-        BOOST_FOREACH(Point p, points) {
-            points_2.push_back(rotate(Point_2(p.x, p.y)));
-        }
-
-        K::Iso_rectangle_2 c2 = CGAL::bounding_box(points_2.begin(), points_2.end());
-        double a = c2.area();
-        if (area < 0 || a < area ) {
-            area = a;
-            angel = i;
-        }
-
-    }
-    return angel;
-}
 
 std::vector<Point> Geometry::offsetPolygon(std::vector<Point> points)  {
     typedef CGAL::Exact_predicates_inexact_constructions_kernel K ;
