@@ -60,27 +60,22 @@
 
 //#include "alglib/src/spline1d.h"
 
- //struct Kernel : public CGAL::Exact_predicates_exact_constructions_kernel  {};
 
 using namespace boost;
 
-//typedef CGAL::Quotient<CGAL::MP_Float>           Number_type;
-typedef CGAL::Quotient<double>           Number_type;
-//typedef CGAL::Quotient<float>                  Number_type;
-//typedef float  Number_type;
-//typedef CGAL::MP_Float  Number_type;
+typedef CGAL::Quotient<double>                          Number_type;
 typedef CGAL::Cartesian<Number_type>                    Kernel;
-typedef CGAL::Snap_rounding_traits_2<Kernel>     Traits;
-typedef Kernel::Segment_2                        Segment_2;
-typedef Kernel::Point_2                          Point_2;
-typedef std::list<Segment_2>                     Segment_list_2;
-typedef std::list<Point_2>                       Polyline_2;
-typedef std::list<Polyline_2>                    Polyline_list_2;
+typedef CGAL::Snap_rounding_traits_2<Kernel>            Traits;
+typedef Kernel::Segment_2                               Segment_2;
+typedef Kernel::Point_2                                 Point_2;
+typedef std::list<Segment_2>                            Segment_list_2;
+typedef std::list<Point_2>                              Polyline_2;
+typedef std::list<Polyline_2>                           Polyline_list_2;
 typedef CGAL::CORE_algebraic_number_traits              Nt_traits;
 typedef Nt_traits::Rational                             Rational;
 typedef Nt_traits::Algebraic                            Algebraic;
-typedef CGAL::Arr_segment_traits_2<Kernel>                 Traits_2;
-typedef CGAL::Arrangement_2<Traits_2>                      Arrangement_2;
+typedef CGAL::Arr_segment_traits_2<Kernel>              Traits_2;
+typedef CGAL::Arrangement_2<Traits_2>                   Arrangement_2;
 
 namespace DM {
 
@@ -104,12 +99,12 @@ namespace DM {
 
 
         static double calculateMinBoundingBox(std::vector<Node*> nodes, std::vector<Node> &boundingBox);
-
+        static std::vector<Node> offsetPolygon(std::vector<Node*> points, double offset);
         //static void extrudeFace(std::vector<Point> &v, std::vector<Face> & vf, float height);
 
          /*static VectorData  DrawTemperaturAnomaly(Point p, double l1, double l2, double b, double T);
-        static VectorData createRaster(std::vector<Point> & points, double width, double height);
-        static std::vector<Point> offsetPolygon(std::vector<Point> points);*/
+        static VectorData createRaster(std::vector<Point> & points, double width, double height);*/
+        
 
 
 
