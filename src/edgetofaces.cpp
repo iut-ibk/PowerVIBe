@@ -25,7 +25,7 @@
  */
 
 #include "edgetofaces.h"
-#include "geometry.h"
+#include "cgalgeometry.h"
 #include "tbvectordata.h"
 
 DM_DECLARE_NODE_NAME(EdgeToFaces, Geometry)
@@ -61,7 +61,7 @@ EdgeToFaces::EdgeToFaces()
 void EdgeToFaces::run()
 {
     DM::System * sys = this->getData("Data");
-    DM::System s = DM::Geometry::ShapeFinder(sys,edgeLayer, newFace);
+    DM::System s = CGALGeometry::ShapeFinder(sys,edgeLayer, newFace);
 
     std::vector<std::string> uuids = s.getUUIDs(newFace);
 

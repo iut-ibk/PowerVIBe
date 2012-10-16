@@ -1,6 +1,6 @@
 #include "createsinglefamilyhouses.h"
 #include "dmgeometry.h"
-#include "geometry.h"
+#include "cgalgeometry.h"
 #include "tbvectordata.h"
 #include <QPolygonF>
 #include <QTransform>
@@ -38,7 +38,7 @@ void CreateSingleFamilyHouses::run()
         std::vector<DM::Node> bB;        
         //Calcualte bounding minial bounding box
         
-        double angle = Geometry::calculateMinBoundingBox(nodes, bB);
+        double angle = CGALGeometry::calculateMinBoundingBox(nodes, bB);
         Node centroid = DM::Node(parcel->getAttribute("centroid_x")->getDouble(),  parcel->getAttribute("centroid_y")->getDouble(), 0);
         
         double l = 16;
