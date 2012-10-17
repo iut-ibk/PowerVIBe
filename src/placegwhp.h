@@ -40,12 +40,17 @@ class DM_HELPER_DLL_EXPORT PlaceGWHP : public Module
     
 private:
     DM::View buildings;
+    DM::View parcels;
+    DM::View ghwps;
+    const double pi =  3.14159265;
+    std::string database_location;
     
 public:
     PlaceGWHP();
     void run();
     
     double calcuateHydraulicEffectedArea(double Q, double kf, double IG, double kfhTokfh);
+    double calculateWaterAmount(double demandHeating, double deltaT);
 };
 
 #endif /* defined(__DynaMind_ToolBox__placegwhp__) */

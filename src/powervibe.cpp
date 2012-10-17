@@ -33,6 +33,8 @@
 #include <edgetofaces.h>
 #include <householdplacementdtu.h>
 #include <createsinglefamilyhouses.h>
+#include <placegwhp.h>
+#include <heatingdemand.h>
 
 using namespace DM;
 
@@ -44,4 +46,6 @@ extern "C" void DM_HELPER_DLL_EXPORT  registerModules(ModuleRegistry *registry) 
     registry->addNodeFactory(new NodeFactory<EdgeToFaces>());
     registry->addNodeFactory(new NodeFactory<HouseholdPlacementDTU>());
     registry->addNodeFactory(new NodeFactory<CreateSingleFamilyHouses>());
+    registry->addNodeFactory(new NodeFactory<HeatingDemand>());
+    registry->addNodeFactory(new NodeFactory<PlaceGWHP>());
 }

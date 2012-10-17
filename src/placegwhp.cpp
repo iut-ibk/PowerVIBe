@@ -24,38 +24,73 @@
  *
  */
 
-
+#include <math.h>
 #include "placegwhp.h"
+#include "thermalregenerationDB.h"
 
 DM_DECLARE_NODE_NAME(PlaceGWHP, PowerVIBe)
 
 PlaceGWHP::PlaceGWHP()
 {
     buildings = DM::View("BUILDING", DM::COMPONENT, DM::READ);
+    buildings.getAttribute("PARCEL");
     buildings.getAttribute("heating_demand");
-    buildings.addAttribute("gwhp_q");
+    buildings.getAttribute("heating_duration");
+    
+        
+    parcels = DM::View("PARCEL", DM::FACE, DM::READ);
+    parcels.getAttribute("I");
+    parcels.getAttribute("kf");
+    parcels.getAttribute("kfhTokfh");
+    parcels.getAttribute("BUILDING");
+    
+    ghwps = DM::View("COMPONENT", DM::COMPONENT, DM::MODIFY);
+    ghwps.addAttribute("Q");
+    
+    ghwps.addLinks("BUILDING", buildings);
+    buildings.addLinks("GWHP", ghwps);
     
     std::vector<DM::View> data;
     data.push_back(buildings);
+    data.push_back(parcels);
+    data.push_back(ghwps);
+    database_location = "";
+    this->addParameter("GWHP_Database", DM::FILENAME, &this->database_location);
     
     this->addData("City", data);
+    
 }
 
 void PlaceGWHP::run()
 {
     
+    ThermalRegenerationDB TRDatabase(database_location);
+    
     DM::System * city = this->getData("City");
     
     //Caluclate Water Demand For every building
-    std::vector<std::string> building_uuids = city->getUUIDs("City");
+    std::vector<std::string> building_uuids = city->getUUIDs(buildings);
     
-    foreach (std::string building_uuid, building_uuids) {
-        
+    foreach (std::string building_uuid, building_uuids) {        
         DM::Component * building = city->getComponent(building_uuid);
-        double heatingDemand = building->getAttribute("heating_demand")->getDouble();
-        double Q = calculateWaterAmount(heatingDemand, 3);
-        building->addAttribute("gwhp_q", Q);
         
+        //GetParcel
+        LinkAttribute lp = building->getAttribute("PARCEL")->getLink();
+        if (lp.uuid.empty()) {
+            Logger(Warning) << "Building not linked can't create GWHP";
+            continue;
+        }
+        
+        Face * parcel = city->getFace(lp.uuid);
+        double heatingDemand = building->getAttribute("heating_demand")->getDouble();        
+        double Q = calculateWaterAmount(heatingDemand, 3);
+        //building->addAttribute("gwhp_q", Q);
+        DM::Component ghwp = TRDatabase.getThermalRegernationField(
+                                                                   parcel->getAttribute("I")->getDouble(),
+                                                                   parcel->getAttribute("kf")->getDouble(),
+                                                                   parcel->getAttribute("kfhTokfh")->getDouble(),
+                                                                   Q,
+                                                                   building->getAttribute("heating_duration")->getDouble());
         
     }
     
@@ -67,7 +102,7 @@ double PlaceGWHP::calcuateHydraulicEffectedArea(double Q, double kf, double IG, 
     return 2+3 * pow(Q /(kf*IG*pi) * sqrt( kfhTokfh ) , (1./3.));
 }
 
-double calculateWaterAmount(double demandHeating, double deltaT)
+double PlaceGWHP::calculateWaterAmount(double demandHeating, double deltaT)
 {
     double cvw = 4190000.;
     double A = demandHeating;

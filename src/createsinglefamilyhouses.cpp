@@ -10,6 +10,7 @@ DM_DECLARE_NODE_NAME(CreateSingleFamilyHouses, BlockCity)
 CreateSingleFamilyHouses::CreateSingleFamilyHouses()
 {
     houses = DM::View("BUILDING", DM::FACE, DM::WRITE);
+    houses.addAttribute("floor_area");
 
     parcels = DM::View("PARCEL", DM::FACE, DM::READ);
     parcels.getAttribute("centroid_x");
@@ -66,7 +67,7 @@ void CreateSingleFamilyHouses::run()
         }
         houseNodes.push_back(houseNodes[0]);
         DM::Face * building = city->addFace(houseNodes, houses);
-        
+        building->addAttribute("floor_area", l*b);
         //Create Links
         building->getAttribute("PARCEL")->setLink(parcels.getName(), parcel->getUUID());
         parcel->getAttribute("BUILDING")->setLink(houses.getName(), building->getUUID());

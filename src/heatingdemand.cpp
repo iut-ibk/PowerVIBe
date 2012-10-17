@@ -30,8 +30,8 @@ DM_DECLARE_NODE_NAME(HeatingDemand, PowerVIBe)
 HeatingDemand::HeatingDemand()
 {
     buildings = DM::View("BUILDING", DM::COMPONENT, DM::READ);
-    buildings.getAttribute("floor_space");
-    buildings.getAttribute("built_year")
+    buildings.getAttribute("floor_area");
+    buildings.getAttribute("built_year");
     buildings.addAttribute("heating_demand");
     
     std::vector<DM::View> data;
@@ -46,13 +46,13 @@ void HeatingDemand::run()
     std::vector<std::string> buildingUUIDs = city->getUUIDs(buildings);
     foreach (std::string uuid, buildingUUIDs){
         DM::Component * building = city->getComponent(uuid);
-        double area = city->getAttribute("floor_space")->getDouble();
+        double area = city->getAttribute("floor_area")->getDouble();
         int year = (int) city->getAttribute("heating_demand")->getDouble();
         building->addAttribute("heating_demand", calculateHeatingDemand(area, year));
     }
 }
 
-double calcualteHeatingDemand(double area, int year) {
+double HeatingDemand::calculateHeatingDemand(double area, int year) {
     double fw = 75;
     if (year > 1995)
         fw = 50;
