@@ -33,6 +33,7 @@ HeatingDemand::HeatingDemand()
     buildings.getAttribute("floor_area");
     buildings.getAttribute("built_year");
     buildings.addAttribute("heating_demand");
+    buildings.addAttribute("heating_duration");
     
     std::vector<DM::View> data;
     data.push_back(buildings);
@@ -46,9 +47,10 @@ void HeatingDemand::run()
     std::vector<std::string> buildingUUIDs = city->getUUIDs(buildings);
     foreach (std::string uuid, buildingUUIDs){
         DM::Component * building = city->getComponent(uuid);
-        double area = city->getAttribute("floor_area")->getDouble();
-        int year = (int) city->getAttribute("heating_demand")->getDouble();
+        double area = building->getAttribute("floor_area")->getDouble();
+        int year = (int) building->getAttribute("built_year")->getDouble();
         building->addAttribute("heating_demand", calculateHeatingDemand(area, year));
+        building->addAttribute("heating_duration", 2000);
     }
 }
 

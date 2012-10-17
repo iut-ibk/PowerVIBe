@@ -42,6 +42,7 @@ private:
     DM::View buildings;
     DM::View parcels;
     DM::View ghwps;
+    DM::View regzones;;
     const double pi =  3.14159265;
     std::string database_location;
     
@@ -49,6 +50,7 @@ public:
     PlaceGWHP();
     void run();
     
+    void drawTemperaturAnomaly(DM::Node p, double l1, double l2, double b, double T, DM::System * sys, DM::View v);
     double calcuateHydraulicEffectedArea(double Q, double kf, double IG, double kfhTokfh);
     double calculateWaterAmount(double demandHeating, double deltaT);
 };

@@ -35,13 +35,13 @@
 #include <QString>
 #include <QStringList>
 
-typedef QMap<QString, QVector<double> * > value_map;
+typedef QMap<QString, QVector<double> > value_map;
 class ValueMap : public value_map
 {
 public:
     ValueMap();
     ValueMap(QStringList);
-    ~ValueMap();    
+
     
 };
 
@@ -50,11 +50,11 @@ class ThermalRegenerationDB
 private:
     ValueMap database;
     QStringList listVals;
-    ValueMap interpolate(const ValueMap & m, QString index, double val);
+    ValueMap interpolate(ValueMap m, QString index, double val);
 
 public:
     ThermalRegenerationDB(std::string filename);
-    DM::Component getThermalRegernationField(double I, double kf, double kfHzuV, double Q, double BD);
+    DM::Component getThermalRegernationField(double I, double TempR,double kf, double kfHzuV, double Q, double BD, double Disp);
     
     
     

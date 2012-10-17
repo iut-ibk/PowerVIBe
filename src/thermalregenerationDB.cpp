@@ -41,15 +41,9 @@ ValueMap::ValueMap(QStringList listVals)
 {
     //init Map
     foreach (QString name, listVals)
-    (*this)[name] = new QVector<double>();
+        (*this)[name] = QVector<double>();
 }
 
-ValueMap::~ValueMap()
-{
-    foreach(QString key, this->keys())
-    delete (*this)[key];
-    
-}
 
 
 
@@ -65,7 +59,7 @@ ValueMap::~ValueMap()
 ThermalRegenerationDB::ThermalRegenerationDB(std::string filename)
 {
 
-    listVals << "I" << "kf" << "kfHzuV" << "Q" << "TempR" << "B" << "BD" << "Disp" << "L" << "Bhyd" << "v";
+    listVals << "I" << "kf" << "kfHzuV" << "Q" << "TempR" << "BD" << "Disp" << "L" << "B" << "Bhyd" << "v";
     
     database = ValueMap(listVals);
 
@@ -78,7 +72,8 @@ ThermalRegenerationDB::ThermalRegenerationDB(std::string filename)
     QTextStream in(&db);
     bool startReading = false;
     while (!in.atEnd()) {
-        QString line = in.readLine();
+        QString line = in.readLine().simplified();
+        
         QStringList slist = line.split(QRegExp("\\s+"));
         if ((slist.size() > 0) && (!startReading)) {
             if (slist[0].contains("=")) {
@@ -91,9 +86,8 @@ ThermalRegenerationDB::ThermalRegenerationDB(std::string filename)
         
         if (slist.size() != listVals.size())
             continue;
-        
-        for (int i = 0; listVals.size(); i++)
-            database[listVals[i]]->push_back(slist[i].toDouble());     
+        for (int i = 0; i < listVals.size(); i++)
+            database[listVals[i]].push_back(slist[i].toDouble());
         
     }
     
@@ -101,15 +95,15 @@ ThermalRegenerationDB::ThermalRegenerationDB(std::string filename)
     
 }
 
-DM::Component ThermalRegenerationDB::getThermalRegernationField(double I, double kf, double kfHzuV, double Q, double BD)
+DM::Component ThermalRegenerationDB::getThermalRegernationField(double I, double T, double kf, double kfHzuV, double Q, double BD, double Disp)
 {
     
     DM::Component thermalReg;
     QStringList searchList;
     
-    searchList << "I" << "kf" << "kfHzuV" << "Q" << "BD";
+    searchList << "I" << "TempR" << "kf" << "kfHzuV" << "Q" << "BD" << "Disp";
     QVector<double> values;
-    values << I << kf << kfHzuV << Q << BD;
+    values << I << T << kf << kfHzuV << Q << BD << Disp;
     
     ValueMap searchMap = database;
     
@@ -122,30 +116,40 @@ DM::Component ThermalRegenerationDB::getThermalRegernationField(double I, double
         return thermalReg;
     
     foreach(QString name, listVals) {
-        thermalReg.addAttribute(name.toStdString(), (*(searchMap[name]))[0]);
+       
+        QStringList sl;
+        foreach (double d, searchMap[name])
+            sl << QString::number(d);
+        DM::Logger(DM::Debug) << name.toStdString() << sl.join(",").toStdString();
+        thermalReg.addAttribute(name.toStdString(), searchMap[name][0]);
     }
     
     return thermalReg;
 }
 
-ValueMap ThermalRegenerationDB::interpolate(const ValueMap & m, QString index, double val) {
+ValueMap ThermalRegenerationDB::interpolate(ValueMap m, QString index, double val) {
     ValueMap ress;
     if (m.size() == 0)
         return ress;
+    if (!m.contains(index)){
+        return ress;
+    }
+    if (m[index].size()== 0)
+        return ress;
     //find min values
-    double minvalue = fabs( (*(m[index]))[0]-val );
-    double value = (*(m[index]))[0];
-    for (int i = 0; i < m.size(); i++) {
-        if ( minvalue > fabs((*(m[index]))[i]- val ) ){
-            minvalue = fabs((*(m[index]))[i]-val);
-            value = (*(m[index]))[i];
+    double minvalue = fabs(m[index][0]-val );
+    double value = m[index][0];
+    for (int i = 0; i < m[index].size(); i++) {
+        if ( minvalue > fabs(m[index][i]- val ) ){
+            minvalue = fabs(m[index][i]-val);
+            value = m[index][i];
 
         }
     }
-      for (int i = 0; i < m.size(); i++) {
-          if ((*(m[index]))[i] == value) {
+      for (int i = 0; i < m[index].size(); i++) {
+          if (m[index][i] == value) {
               foreach(QString name, listVals) {
-                  ress[index]->push_back((*(m[name]))[i]);
+                  ress[name].push_back(m[name][i]);
               }
           }
       }
