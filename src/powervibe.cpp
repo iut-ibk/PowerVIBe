@@ -35,6 +35,7 @@
 #include <createsinglefamilyhouses.h>
 #include <placegwhp.h>
 #include <heatingdemand.h>
+#include <exportkml.h>
 
 using namespace DM;
 
@@ -48,4 +49,5 @@ extern "C" void DM_HELPER_DLL_EXPORT  registerModules(ModuleRegistry *registry) 
     registry->addNodeFactory(new NodeFactory<CreateSingleFamilyHouses>());
     registry->addNodeFactory(new NodeFactory<HeatingDemand>());
     registry->addNodeFactory(new NodeFactory<PlaceGWHP>());
+    registry->addNodeFactory(new NodeFactory<ExportKML>());
 }
