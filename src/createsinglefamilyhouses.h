@@ -11,6 +11,8 @@ class CreateSingleFamilyHouses : public Module
 private:
     DM::View houses;
     DM::View parcels;
+    DM::View building_model;
+    DM::View footprint;
 public:
     CreateSingleFamilyHouses();
     void run();
