@@ -34,19 +34,92 @@ class CreateDAE(Module):
         datastream = []
         datastream.append(self.buildings)
         self.addData("City", datastream)
-            
+    
+    def rotatePolygon(self, nodes, deg):
+        nodes_rotated = []
+        rad = deg * 180. / math.pi
+        for n in nodes:
+            x = n.getX()
+            y = n.getY()
+            x1 = math.cos(rad) * x - math.sin(rad) * y
+            y2 = math.sin(rad) * x + math.cos(rad) * y
+            nodes_rotated.append(Node(x1,y2,n.getZ()))
+
+        return nodes_rotated
+
+    def translatePolygon(self, nodes, center):
+        nodes_translate = []
+        for n in nodes:
+                x = n.getX()
+                y = n.getY()
+                x1 = x + center.getX()
+                y2 = y + center.getY()
+                nodes_translate.append(Node(x1,y2,n.getZ()))
+        return nodes_translate
+    
+    def createPlacemarkForSelection(self, cmp, uuid, center, fld):
+        
+        l = cmp.getAttribute("l_bounding").getDouble() - 1.
+        b = cmp.getAttribute("b_bounding").getDouble() - 1.
+        h = cmp.getAttribute("h_bounding").getDouble() - 1.
+        alpha = cmp.getAttribute("alhpa_bounding").getDouble()
+        
+        nodes = []
+        nodes.append(Node(l/2, -b/2, h))
+        nodes.append(Node(l/2, b/2, h))
+        nodes.append(Node(-l/2, b/2, h))
+        nodes.append(Node(-l/2, -b/2, h))
+        nodes.append(Node(l/2, -b/2, h))
+        
+        nodes = self.rotatePolygon(nodes, alpha)
+        nodes = self.translatePolygon(nodes, center)
+        nodes_transformed = []
+        exdata = KML.ExtendedData()
+        attributes = cmp.getAllAttributes()
+        for k in attributes:
+            attr = attributes[k]
+            print attr.getType()
+            if attr.getType() == Attribute.DOUBLE:
+                print str(k) + " " + str(attr.getDouble())
+                d = KML.Data(
+                         KML.name(k),
+                         KML.value(attr.getDouble()),
+                    )
+                exdata.append(d)
+                    
+        
+        for n in nodes:
+            nodes_transformed.append(self.transformCoorindate(n))
+        coordinates =  ''
+        for n in nodes_transformed:
+            coordinates+="{0},{1},{2}".format(n.getX(), n.getY(), n.getZ())+"\n"
+    
+        
+        cmp
+        pm = KML.Placemark(
+                           KML.name(uuid+"_Data"),
+                           exdata,
+                           KML.styleUrl("#transRedPoly"),
+
+                           KML.Polygon(
+                                       KML.extrude(1),
+                                       KML.altitudeMode("relativeToGround"),
+                                       KML.outerBoundaryIs(
+                                                            KML.LinearRing(
+
+                                                                            KML.coordinates(coordinates),
+                                                                           ),
+                                                            ),
+                                        ),
+                               
+                            )
+        fld.append(pm)
+
+    
     def createPlacemark(self, uuid, filetoDAE, center):
         node_transformed = self.transformCoorindate(center)
         pm1 = KML.Placemark(
             KML.name(uuid),
-            KML.description(uuid),
-            GX.balloonVisibility(1),
-            KML.ExtendedData(
-                            KML.Data(
-                             KML.name("huh"),
-                             KML.value(1),
-                             ),
-            ),
             KML.Model(
                 KML.styleUrl("#transYellowPoly"),
                 KML.altitudeMode('relativeToGround'),
@@ -86,8 +159,7 @@ class CreateDAE(Module):
                                                        
                 pm = KML.Placemark(
                             KML.name(obj),
-                            KML.styleUrl("#transYellowPoly"),
-                            
+                            KML.styleUrl("#transYellowPoly"),                            
                             KML.Polygon(
                             KML.outerBoundaryIs(
                                     KML.LinearRing(
@@ -244,8 +316,18 @@ class CreateDAE(Module):
                         KML.color("7d00ffff"),
                     ),
                     id="transYellowPoly",
-                )
-            )
+                ),
+                KML.Style(
+                      KML.LineStyle(
+                      KML.width(1.5),
+                      ),
+                                   KML.PolyStyle(
+                                                 KML.color("7d0000ff"),
+                                                 ),
+                                   id="transRedPoly",
+                                   )
+  
+            ) 
         )
         fld = KML.Folder()
         
@@ -266,6 +348,7 @@ class CreateDAE(Module):
                 for attribute in LinkAttributes:                    
                     objects.append(attribute.uuid)
                 self.createDAE_KML(city, uuid, objects, center,fld)
+                self.createPlacemarkForSelection(city.getComponent(uuid), uuid, center, fld)
             if self.Type == "FACE":
                     objects.append(uuid)        
                     self.createPlacemarkAsLineString(city, objects, fld)

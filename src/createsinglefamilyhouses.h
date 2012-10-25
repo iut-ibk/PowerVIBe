@@ -13,6 +13,7 @@ private:
     DM::View parcels;
     DM::View building_model;
     DM::View footprint;
+    int stories;
 public:
     CreateSingleFamilyHouses();
     void run();
