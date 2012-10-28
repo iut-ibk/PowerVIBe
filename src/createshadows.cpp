@@ -1,8 +1,11 @@
 #include "createshadows.h"
 
+#include <tbvectordata.h>
+
 #include <iostream>
 #include <list>
 #include <fstream>
+#include <cgalgeometry.h>
 
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/AABB_tree.h>
@@ -11,6 +14,11 @@
 #include <CGAL/Polyhedron_3.h>
 #include <sunpos.h>
 #include <QDate>
+
+
+#include <ogr_spatialref.h>
+#include <ogrsf_frmts.h>
+
 
 typedef CGAL::Simple_cartesian<double> K;
 
@@ -29,38 +37,43 @@ typedef CGAL::AABB_tree<AABB_triangle_traits> Tree;
 
 
 DM_DECLARE_NODE_NAME(CreateShadows, PowerVIBe)
-DM::Node CreateShadows::normalVector(std::vector<DM::Node*> nodes)
+
+CreateShadows::CreateShadows()
 {
-    if (nodes.size() != 3){
-        DM::Logger(DM::Warning) << "Normal Vector needs exactly 3 Points";
-        return DM::Node(0,0,0);
-    }
+    buildings = DM::View("Building", DM::COMPONENT, DM::READ);
+    buildings.getAttribute("Model");
 
-    DM::Node n1 = *(nodes[0]) - *(nodes[1]);
-    DM::Node n2 = *(nodes[1]) - *(nodes[2]);
+    models = DM::View("Model", DM::FACE, DM::READ);
 
-    double x = n1.getY()*n2.getZ() - n1.getZ()*n2.getY();
-    double y = n1.getZ()*n2.getX() - n1.getX()*n2.getZ();
-    double z = n1.getX()*n2.getY() - n1.getY()*n2.getX();
-    double l = sqrt(x*x+y*y+z*z);
-    return DM::Node(x/l,y/l,z/l);
+    sunrays = DM::View("SunRays", DM::EDGE, DM::WRITE);
+
+    std::vector<DM::View> data;
+    //data.push_back(buildings);
+    data.push_back(models);
+    data.push_back(sunrays);
+
+    this->addData("city", data);
+
 }
 
-double CreateShadows::angelBetweenVectors(const DM::Node & n1, const DM::Node & n2)
-{
-    double val1 = n1.getX()*n2.getX()+n1.getY()*n2.getY()+n1.getZ()*n2.getZ();
-    double N1 = n1.getX()*n1.getX()+n1.getY()*n1.getY()+n1.getZ()*n1.getZ();
-    double N2 = n2.getX()*n2.getX()+n2.getY()*n2.getY()+n2.getZ()*n2.getZ();
-    if (N1 == 0 || N2 == 0) {
-        DM::Logger(DM::Warning) << "n1 or n2 is null!";
-        return -1;
-    }
 
-    double cosangel = val1/(sqrt(N1)*sqrt(N2));
-    double dir = acos(cosangel);
-    //DM::Logger(DM::Debug) << "Direction: " << dir*180/pi;
-    return dir;
+
+void CreateShadows::transformCooridnates(double &x, double &y)
+{
+
+    OGRSpatialReference oSourceSRS, oTargetSRS;
+    OGRCoordinateTransformation *poCT;
+    oTargetSRS.importFromEPSG( 4326  );
+    oSourceSRS.importFromEPSG( 31257 );
+    poCT = OGRCreateCoordinateTransformation( &oSourceSRS,
+                                              &oTargetSRS );
+
+    if( poCT == NULL || !poCT->Transform( 1, &x, &y ) )
+        DM::Logger(DM::Warning) <<  "Transformation failed";
+
 }
+
+
 
 DM::Node CreateShadows::directionSun(double dAzimuth, double dZenithAngle)
 {
@@ -95,75 +108,68 @@ void CreateShadows::testdirectionSun()
 
 
 
-CreateShadows::CreateShadows()
-{
-}
 
 
 void CreateShadows::run()
 {
 
-
-    QDate date(2012, 6,1);
-    DM::Node west(-1,0,0);
-    DM::Node east(1,0,0);
-    DM::Node north(0,1,0);
-    DM::Node south(0,-1,0);
-    DM::Node above(0,0,1);
+    DM::System * city = this->getData("city");
 
 
     cLocation pos;
     pos.dLatitude = 47.2611;
     pos.dLongitude = -11.3928;
 
-    ofstream ress;
-    ress.open ("ress.txt");
+    std::vector<std::string> model_uuids =  city->getUUIDs(models);
 
+    foreach (std::string uuid, model_uuids) {
+        QDate date(2012, 1,1);
+        //Create Face Point
+        DM::Face * f = city->getFace(uuid);
+        std::vector<DM::Node> triangels = DM::CGALGeometry::FaceTriangulation(city, f);
+        DM::Logger(DM::Debug) << "Face";
+        foreach (DM::Node n, triangels)
+            DM::Logger(DM::Debug) << n.getX() << "\t" << n.getY() << "\t" << n.getZ();
 
+  /*      DM::Node center = TBVectorData::CentroidPlane3D(city, f);
 
-    do {
-        cTime datum;
-        datum.iYear = date.year();
-        datum.iMonth = date.month();
-        datum.iDay = date.day();
-        datum.dHours = 0;
-        datum.dMinutes = 0;
-        datum.dSeconds = 0;
-        for (int h = 0; h < 24; h++) {
-            datum.dHours = h;
+        std::vector<DM::Node*> nodes = TBVectorData::getNodeListFromFace(city, f);
 
+        DM::Node dir = TBVectorData::NormalVector(*(nodes[0]), *(nodes[1]));
+        DM::Node * n1 =  city->addNode(center);
 
-            cSunCoordinates * sunloc = new cSunCoordinates();
-            sunpos(datum, pos, sunloc);
+        do {
+            cTime datum;
+            datum.iYear = date.year();
+            datum.iMonth = date.month();
+            datum.iDay = date.day();
+            datum.dHours = 0;
+            datum.dMinutes = 0;
+            datum.dSeconds = 0;
+            for (int h = 0; h < 24; h++) {
+                datum.dHours = h;
+                cSunCoordinates * sunloc = new cSunCoordinates();
+                sunpos(datum, pos, sunloc);
+                DM::Node sun = this->directionSun(sunloc->dAzimuth,sunloc->dZenithAngle);
+                if (sunloc->dAzimuth < 90 || sunloc->dAzimuth > 270)
+                    continue;
+                double w = TBVectorData::AngelBetweenVectors(dir, sun) * 180/pi;
 
-            //DM::Logger(DM::Debug) << "\t" << sunloc->dAzimuth << "\t"<< sunloc->dZenithAngle;
+                DM::Node * n2 = city->addNode(*n1+sun);
 
+                DM::Edge * e = city->addEdge(n1, n2, this->sunrays);
+                std::stringstream datestring;
+                datestring << date.toString("yyyy-MM-dd").toStdString();
+                QTime t(datum.dHours, datum.dMinutes, datum.dSeconds);
+                datestring << "T" <<  t.toString("hh:mm:ss").toStdString() << "Z";
 
-            DM::Node n1 = this->directionSun(sunloc->dAzimuth,sunloc->dZenithAngle);
+                e->addAttribute("date", datestring.str());
 
-            DM::Logger(DM::Debug) << "\t" << n1.getX() << "\t" << n1.getY() << "\t" << n1.getZ();
-
-            double w = this->angelBetweenVectors(west, n1) * 180/pi;
-            double e = this->angelBetweenVectors(east, n1)* 180/pi;
-            double n = this->angelBetweenVectors(north, n1)* 180/pi;
-            double s = this->angelBetweenVectors(south, n1)* 180/pi;
-            double a = this->angelBetweenVectors(above, n1)* 180/pi;
-
-            if (sunloc->dZenithAngle >= 90) {
-                w = 0;
-                e = 0;
-                n = 0;
-                s = 0;
-                a = 0;
             }
+            date = date.addDays(1);
+        } while (date.year()< 2013);*/
+    }
 
-            ress << w << "\t"  << e << "\t" << n << "\t" << s << "\t" << a << "\n";
-        }
-        date = date.addDays(1000);
-        DM::Logger(DM::Debug) << date.toString();
-    } while (date.year()< 2013);
-
-    ress.close();
 
     //this->testdirectionSun();
     /*Point a(1.0, 0.0, 0.0);

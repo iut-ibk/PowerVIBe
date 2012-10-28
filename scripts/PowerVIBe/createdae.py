@@ -59,9 +59,9 @@ class CreateDAE(Module):
     
     def createPlacemarkForSelection(self, cmp, uuid, center, fld):
         
-        l = cmp.getAttribute("l_bounding").getDouble() - 1.
-        b = cmp.getAttribute("b_bounding").getDouble() - 1.
-        h = cmp.getAttribute("h_bounding").getDouble() - 1.
+        l = cmp.getAttribute("l_bounding").getDouble()
+        b = cmp.getAttribute("b_bounding").getDouble()
+        h = cmp.getAttribute("h_bounding").getDouble()
         alpha = cmp.getAttribute("alhpa_bounding").getDouble()
         
         nodes = []
@@ -139,8 +139,40 @@ class CreateDAE(Module):
             if abs(x1 - x) > 0.0001:
                 return True
         return False
-        
+    
     def createPlacemarkAsLineString(self, city, objects, fld):
+        for obj in objects:
+            e = city.getEdge(obj)
+            n_uuids = []
+            n_uuids.append(e.getStartpointName())
+            n_uuids.append(e.getEndpointName())
+            p_nodes = []
+            for n_uuid in n_uuids:
+                n = city.getNode(n_uuid)
+                p_nodes.append(n)
+            p_nodes.reverse()
+            nodes_transformed = []
+            for n in p_nodes:
+                nodes_transformed.append(self.transformCoorindate(n))
+            coordinates =  ''
+            for n in nodes_transformed:
+                coordinates+="{0},{1},{2}".format(n.getX(), n.getY(), n.getZ())+"\n"
+            
+            
+            pm = KML.Placemark(
+                               KML.name(obj),
+                               KML.styleUrl("#transYellowPoly"),
+                                   KML.TimeStamp(
+                                      KML.when(e.getAttribute("date").getString()),
+                                                 ),
+                                        KML.LineString(
+                                            KML.altitudeMode("relativeToGround"),
+                                            KML.coordinates(coordinates),
+                                        ),
+                               )
+            fld.append(pm)
+
+    def createPlacemarkAsLineRing(self, city, objects, fld):
         for obj in objects:
                 f = city.getFace(obj)
                 nodes = f.getNodes()
@@ -155,7 +187,6 @@ class CreateDAE(Module):
                 coordinates =  ''
                 for n in nodes_transformed:
                     coordinates+="{0},{1},{2}".format(n.getX(), n.getY(), n.getZ())+"\n"
-                print coordinates
                                                        
                 pm = KML.Placemark(
                             KML.name(obj),
@@ -345,12 +376,15 @@ class CreateDAE(Module):
                 print "Component"
                 center = Node(building.getAttribute("centroid_x").getDouble(), building.getAttribute("centroid_y").getDouble(),0.0)
                 LinkAttributes = building.getAttribute("Model").getLinks()
-                for attribute in LinkAttributes:                    
+                for attribute in LinkAttributes:
                     objects.append(attribute.uuid)
-                self.createDAE_KML(city, uuid, objects, center,fld)
+                #self.createDAE_KML(city, uuid, objects, center,fld)
                 self.createPlacemarkForSelection(city.getComponent(uuid), uuid, center, fld)
             if self.Type == "FACE":
                     objects.append(uuid)        
+                    self.createPlacemarkAsLineRing(city, objects, fld)
+            if self.Type == "EDGE":
+                    objects.append(uuid)
                     self.createPlacemarkAsLineString(city, objects, fld)
                 
         doc.Document.append(fld)

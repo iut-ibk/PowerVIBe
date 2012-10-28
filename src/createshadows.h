@@ -7,11 +7,16 @@ class DM_HELPER_DLL_EXPORT CreateShadows : public DM::Module
 {
     DM_DECLARE_NODE(CreateShadows)
 private:
-        DM::Node normalVector(std::vector<DM::Node*> nodes);
-        double angelBetweenVectors(const DM::Node &n1, const DM::Node &n2);
+        DM::View buildings;
+        DM::View models;
+        DM::View sunrays;
+        void transformCooridnates(double &x, double &y);
         DM::Node directionSun( double dAzimuth, double dZenithAngle);
 
         void testdirectionSun();
+
+
+
 public:
     CreateShadows();
     void run();

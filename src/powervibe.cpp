@@ -36,6 +36,7 @@
 #include <placegwhp.h>
 #include <heatingdemand.h>
 #include <createshadows.h>
+#include <singlehouse.h>
 
 using namespace DM;
 
@@ -50,4 +51,5 @@ extern "C" void DM_HELPER_DLL_EXPORT  registerModules(ModuleRegistry *registry) 
     registry->addNodeFactory(new NodeFactory<HeatingDemand>());
     registry->addNodeFactory(new NodeFactory<PlaceGWHP>());
     registry->addNodeFactory(new NodeFactory<CreateShadows>());
+    registry->addNodeFactory(new NodeFactory<SingleHouse>());
 }

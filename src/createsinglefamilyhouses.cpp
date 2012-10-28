@@ -155,7 +155,7 @@ void CreateSingleFamilyHouses::run()
         base_plate->addAttribute("type", "ceiling_cellar");
 
         //Create Walls
-        std::vector<DM::Face*> extruded_faces = CGALGeometry::ExtrudeFace(city, building_model, houseNodes, 4);
+        std::vector<DM::Face*> extruded_faces = TBVectorData::ExtrudeFace(city, building_model, houseNodes, 4);
         int lastID = extruded_faces.size();
 
 
