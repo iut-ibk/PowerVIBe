@@ -122,16 +122,31 @@ void CreateShadows::run()
 
     std::vector<std::string> model_uuids =  city->getUUIDs(models);
 
+    //Init Triangles
+    std::list<Triangle> triangles;
+    foreach (std::string uuid, model_uuids) {
+        DM::Face * f = city->getFace(uuid);
+        std::vector<DM::Node> tri = DM::CGALGeometry::FaceTriangulation(city, f);
+        for(int i = 0; i < tri.size(); i +=3){
+            std::vector<Point> points;
+            for(int j = 0; j < 3; j++){
+                points.push_back(Point(tri[j].getX(), tri[j].getY(), tri[j].getZ()));
+            }
+            triangles.push_back(Triangle(points[0], points[1], points[2]));
+        }
+    }
+    // constructs AABB tree
+    Tree tree(triangles.begin(),triangles.end());
+
+
+
+
     foreach (std::string uuid, model_uuids) {
         QDate date(2012, 1,1);
         //Create Face Point
         DM::Face * f = city->getFace(uuid);
-        std::vector<DM::Node> triangels = DM::CGALGeometry::FaceTriangulation(city, f);
-        DM::Logger(DM::Debug) << "Face";
-        foreach (DM::Node n, triangels)
-            DM::Logger(DM::Debug) << n.getX() << "\t" << n.getY() << "\t" << n.getZ();
 
-  /*      DM::Node center = TBVectorData::CentroidPlane3D(city, f);
+        DM::Node center = TBVectorData::CentroidPlane3D(city, f);
 
         std::vector<DM::Node*> nodes = TBVectorData::getNodeListFromFace(city, f);
 
@@ -157,6 +172,12 @@ void CreateShadows::run()
 
                 DM::Node * n2 = city->addNode(*n1+sun);
 
+                // counts #intersections
+                Ray ray_query(Point(n1->getX(), n1->getY(), n1->getZ()),Point(n2->getX(), n2->getY(), n2->getZ()));
+                DM::Logger(DM::Debug) << "Intersections " << tree.number_of_intersected_primitives(ray_query)
+                                      << " intersections(s) with ray query";
+
+
                 DM::Edge * e = city->addEdge(n1, n2, this->sunrays);
                 std::stringstream datestring;
                 datestring << date.toString("yyyy-MM-dd").toStdString();
@@ -166,36 +187,12 @@ void CreateShadows::run()
                 e->addAttribute("date", datestring.str());
 
             }
-            date = date.addDays(1);
-        } while (date.year()< 2013);*/
+            date = date.addDays(1000);
+        } while (date.year()< 2013);
     }
 
 
     //this->testdirectionSun();
-    /*Point a(1.0, 0.0, 0.0);
-    Point b(0.0, 1.0, 0.0);
-    Point c(0.0, 0.0, 1.0);
-    Point d(0.0, 0.0, 0.0);
-
-    std::list<Triangle> triangles;
-    triangles.push_back(Triangle(a,b,c));
-    triangles.push_back(Triangle(a,b,d));
-    triangles.push_back(Triangle(a,d,c));
-
-    // constructs AABB tree
-    Tree tree(triangles.begin(),triangles.end());
-
-    // counts #intersections
-    Ray ray_query(a,b);
-    std::cout << tree.number_of_intersected_primitives(ray_query)
-        << " intersections(s) with ray query" << std::endl;
-
-    // compute closest point and squared distance
-    Point point_query(2.0, 2.0, 2.0);
-    Point closest_point = tree.closest_point(point_query);
-    std::cerr << "closest point is: " << closest_point << std::endl;
-    FT sqd = tree.squared_distance(point_query);
-    std::cout << "squared distance: " << sqd << std::endl;*/
 
 
 
