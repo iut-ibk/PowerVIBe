@@ -155,13 +155,14 @@ void CreateSingleFamilyHouses::run()
         base_plate->addAttribute("type", "ceiling_cellar");
 
         //Create Walls
-        std::vector<DM::Face*> extruded_faces = TBVectorData::ExtrudeFace(city, building_model, houseNodes, 4);
+        std::vector<DM::Face*> extruded_faces = TBVectorData::ExtrudeFace(city, building_model, houseNodes, stories * 3);
         int lastID = extruded_faces.size();
 
 
         for (int i = 0; i < lastID; i++) {
             DM::Face * f = extruded_faces[i];
             if (i != lastID-1) {
+                continue;
                 f->getAttribute("color")->setDoubleVector(wallColor);
                 f->addAttribute("type", "wall_outside");
             }

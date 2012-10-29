@@ -51,6 +51,23 @@ INCLUDE(${QT_USE_FILE})
 INCLUDE_DIRECTORIES( ${DYNAMIND_INCLUDE_DIR})
 INCLUDE_DIRECTORIES( ${DYNAMIND_EXTENSIONS_INCLUDE_DIR})
 
+
+find_package(OpenMP)
+if(OPENMP_FOUND)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+        message(STATUS "OpenMP is enabled")
+else()
+        add_definitions(-DOPENMP_DISABLED)
+        message(STATUS "OpenMP is disabled. Consider using a compiler that supports OpenMP")
+endif()
+
+if (CMAKE_BUILD_TYPE STREQUAL Debug)
+        message(STATUS Debug)
+        add_definitions(-DDEBUG)
+else ()
+        message(STATUS Release)
+endif()
+
 IF(CMAKE_BUILD_TYPE STREQUAL Debug)
         MESSAGE(STATUS "Build Type = Debug")
         ADD_DEFINITIONS(-DDEBUG)

@@ -10,10 +10,13 @@ private:
         DM::View buildings;
         DM::View models;
         DM::View sunrays;
+        DM::View sunnodes;
         void transformCooridnates(double &x, double &y);
         DM::Node directionSun( double dAzimuth, double dZenithAngle);
 
         void testdirectionSun();
+
+        std::vector<DM::Node> createRaster(DM::System * sys, DM::Face * f);
 
 
 
