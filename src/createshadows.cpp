@@ -1,6 +1,7 @@
 #include "createshadows.h"
 #include <omp.h>
 #include <tbvectordata.h>
+#include <solarrediation.h>
 
 #include <iostream>
 #include <list>
@@ -173,10 +174,6 @@ std::vector<DM::Node> CreateShadows::createRaster(DM::System *sys, DM::Face *f)
     double blockHeight = maxY - minY;
 
 
-    DM::Logger(DM::Debug) << blockHeight;
-    DM::Logger(DM::Debug) << blockWidth;
-
-
     //Create Parcels
 
     unsigned int elements_x = blockWidth/2;
@@ -236,9 +233,8 @@ void CreateShadows::run()
 
 
     int nuuids = model_uuids.size();
-
+    #pragma omp parallel for
     for (int i = 0; i < nuuids; i++){
-
         std::string uuid = model_uuids[i];
         DM::Logger(DM::Debug) << "Face " << uuid;
         //Create Face Point
@@ -305,12 +301,17 @@ void CreateShadows::run()
                     dates.push_back(datestring_dm.str());
 
                     e->addAttribute("date", datestring.str());
+
+
+                    double radiation = SolarRediation::BeamRadiation(date.dayOfYear(), 500, 90 -sunloc->dZenithAngle ,w);
+
                     angles.push_back(w);
                 }
-                n1->getAttribute("sunrays")->addTimeSeries(dates, angles);
                 date = date.addDays(1);
+                n1->getAttribute("sunrays")->addTimeSeries(dates, angles);
             } while (date.year()< 2013);
         }
+        DM::Logger(DM::Debug) << "left " << nuuids - i;
     }
 
 
