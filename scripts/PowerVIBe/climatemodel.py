@@ -29,7 +29,8 @@ class ClimateModel(Module):
             self.a = [-1.129, 1.265, 5.527, 10.619, 15.235, 18.21, 19.901, 19.515, 15.822, 10.179, 4.789, 0.762]
             self.b = [-0.423, -0.458, -0.521, -0.613, -0.602, -0.61, -0.597, -0.607, -0.495, -0.413, -0.486, -0.566]  
         self.region = View("CITY", COMPONENT, READ)
-        self.region.addAttribute("temperature")
+        self.region.addAttribute("temperature_hourly")
+        self.region.addAttribute("temperature_dayly")
         datastream = []
         datastream.append(self.region)
         self.addData("City", datastream)
@@ -44,11 +45,14 @@ class ClimateModel(Module):
         ahour = timedelta(hours=1)
         currentyear = date.year
         currentmonth = date.month
+        currentday = date.day
         daysInCurrentMonth = calendar.monthrange(currentyear, currentmonth)[1]
         Tm = self.meanTemperatur(currentmonth, h)
         dates = stringvector()
         temperature = doublevector()
-        
+        dates_dayly = stringvector()
+        temperatur_dalyly = doublevector()
+        sum_temp_day = 0
         while currentyear == date.year:
             monthly= self.monthlyAmplitude[currentmonth - 1] * sin( float(date.day) / float(daysInCurrentMonth) * (2. * pi))
             dayly = self.daylyAmplitude[currentmonth - 1] * cos(date.hour / 24. * (2 * pi))
@@ -57,16 +61,27 @@ class ClimateModel(Module):
             dates.append(str(date))
             temperature.append(Thm)
             date = date + ahour
+            sum_temp_day += Thm
+            #calucate dayly
+            if (date.day != currentday):
+                temperatur_dalyly.append(sum_temp_day / 24.)
+                dates_dayly.append(datetime(currentyear, currentmonth,currentday).strftime('%Y-%m-%d'))
+                currentday = date.day
+                sum_temp_day = 0.
+                
+            
             #New months new tm
             if (date.month != currentmonth):
                 currentmonth = date.month
                 daysInCurrentMonth = calendar.monthrange(currentyear, currentmonth)[1]
                 Tm = self.meanTemperatur(currentmonth, h)
+                print "Monthly mean " + str(Tm)
         uuids = city.getUUIDs(self.region)
         face = city.getComponent(uuids[0])
 
         
-        face.getAttribute("temperature").addTimeSeries(dates, temperature)
+        face.getAttribute("temperature_hourly").addTimeSeries(dates, temperature)
+        face.getAttribute("temperature_dayly").addTimeSeries(dates_dayly, temperatur_dalyly)
 
         
 

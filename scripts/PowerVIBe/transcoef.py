@@ -62,5 +62,5 @@ class HeatCoefficients:
         return ress
 
 
-
+HeatCoefficients("/Users/christianurich/Documents/DynaMind-ToolBox/PowerVIBe/data/TransmissionCoefficient/default_transmission_coefficients_tirol.csv")
 

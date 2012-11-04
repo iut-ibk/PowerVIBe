@@ -10,7 +10,32 @@
 DM_DECLARE_NODE_NAME(SingleHouse, TestModules)
 SingleHouse::SingleHouse()
 {
-    houses = DM::View("Building", DM::COMPONENT, DM::WRITE);
+    houses = DM::View("BUILDING", DM::COMPONENT, DM::WRITE);
+    houses.addAttribute("built_year");
+    houses.addAttribute("stories");
+    houses.addAttribute("stories_below"); //cellar counts as story
+    houses.addAttribute("stories_height");
+
+    houses.addAttribute("floor_area");
+    houses.addAttribute("gross_floor_area");
+
+    houses.addAttribute("centroid_x");
+    houses.addAttribute("centroid_y");
+
+    houses.addAttribute("l_bounding");
+    houses.addAttribute("b_bounding");
+    houses.addAttribute("h_bounding");
+
+    houses.addAttribute("alpha_bounding");
+
+    houses.addAttribute("alpha_roof");
+
+    houses.addAttribute("cellar_used");
+    houses.addAttribute("roof_used");
+
+    houses.addAttribute("T_heating");
+    houses.addAttribute("T_cooling");
+
     houses.addAttribute("Model");
 
     footprint = DM::View("Footprint", DM::FACE, DM::WRITE);
@@ -88,6 +113,8 @@ void SingleHouse::run()
     building->addAttribute("roof_used", 0);
 
 
+    building->addAttribute("T_heating", 20);
+    building->addAttribute("T_cooling", 26);
 
     //Set footprint as floor
 

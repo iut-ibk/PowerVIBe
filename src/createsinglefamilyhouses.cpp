@@ -50,6 +50,9 @@ CreateSingleFamilyHouses::CreateSingleFamilyHouses()
     houses.addAttribute("cellar_used");
     houses.addAttribute("roof_used");
 
+    houses.addAttribute("T_heating");
+    houses.addAttribute("T_cooling");
+
 
     footprint = DM::View("Footprint", DM::FACE, DM::WRITE);
 
@@ -145,10 +148,10 @@ void CreateSingleFamilyHouses::run()
         building->addAttribute("cellar_used", 1);
         building->addAttribute("roof_used", 0);
 
-
+        building->addAttribute("T_heating", 20);
+        building->addAttribute("T_cooling", 26);
 
         //Set footprint as floor
-
         DM::Face * base_plate = city->addFace(houseNodes, building_model);
         building->getAttribute("Model")->setLink("Model", base_plate->getUUID());
         base_plate->getAttribute("Parent")->setLink(houses.getName(), building->getUUID());

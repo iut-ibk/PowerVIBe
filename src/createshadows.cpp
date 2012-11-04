@@ -42,7 +42,7 @@ DM_DECLARE_NODE_NAME(CreateShadows, PowerVIBe)
 
 CreateShadows::CreateShadows()
 {
-    buildings = DM::View("Building", DM::COMPONENT, DM::READ);
+    buildings = DM::View("BUILDING", DM::COMPONENT, DM::READ);
     buildings.getAttribute("Model");
 
     models = DM::View("Model", DM::FACE, DM::READ);
@@ -233,7 +233,7 @@ void CreateShadows::run()
 
 
     int nuuids = model_uuids.size();
-    #pragma omp parallel for
+    //#pragma omp parallel for
     for (int i = 0; i < nuuids; i++){
         std::string uuid = model_uuids[i];
         DM::Logger(DM::Debug) << "Face " << uuid;
