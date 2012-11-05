@@ -1,5 +1,4 @@
 #include "createshadows.h"
-#include <omp.h>
 #include <tbvectordata.h>
 #include <solarrediation.h>
 

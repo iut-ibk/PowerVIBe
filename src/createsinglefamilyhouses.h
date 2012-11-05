@@ -14,6 +14,7 @@ private:
     DM::View building_model;
     DM::View footprint;
     int stories;
+    void createWindows(DM::Face * f, double distance, double width, double height);
 public:
     CreateSingleFamilyHouses();
     void run();

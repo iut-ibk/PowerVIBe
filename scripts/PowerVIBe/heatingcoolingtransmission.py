@@ -18,7 +18,7 @@ class HeatingCoolingTransmission(Module):
         datastream = []
         datastream.append(self.buildings)
         self.addData("City", datastream)    
-        
+
 
     def run(self):
         #init Database
@@ -42,6 +42,7 @@ class HeatingCoolingTransmission(Module):
             Lt = Le + Lu
             building.addAttribute("transmission_coefficient_heating", Lt)
             building.addAttribute("transmission_coefficient_cooling", Lt)
+            
     def getHelpUrl(self):        
         return "https://docs.google.com/document/pub?id=1s6rJ9mSbTrNU2ZUaF-zALxsdZ0kJZc8RywA-LVtWHgE"
 

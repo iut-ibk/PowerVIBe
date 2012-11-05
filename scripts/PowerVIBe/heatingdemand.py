@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
+
 from pydynamind import *
 from pydmtoolbox import *
 from datetime import *
@@ -60,10 +61,7 @@ class MonthlyHeatingAndCooling(Module):
                     print heating_days
                     heating_days = 0
                     
-                
-            
-            
-            
+          
     def getHelpUrl(self):        
         return "https://docs.google.com/document/pub?id=1s6rJ9mSbTrNU2ZUaF-zALxsdZ0kJZc8RywA-LVtWHgE"
 

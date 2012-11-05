@@ -7,6 +7,7 @@
 #include <dmhelper.h>
 #include <tbvectordata.h>
 
+
 DM_DECLARE_NODE_NAME(CreateSingleFamilyHouses, BlockCity)
 
 CreateSingleFamilyHouses::CreateSingleFamilyHouses()
@@ -67,6 +68,8 @@ CreateSingleFamilyHouses::CreateSingleFamilyHouses()
     data.push_back(building_model);
     this->addData("City", data);
 }
+
+
 
 void CreateSingleFamilyHouses::run()
 {
@@ -157,28 +160,32 @@ void CreateSingleFamilyHouses::run()
         base_plate->getAttribute("Parent")->setLink(houses.getName(), building->getUUID());
         base_plate->addAttribute("type", "ceiling_cellar");
 
-        //Create Walls
-        std::vector<DM::Face*> extruded_faces = TBVectorData::ExtrudeFace(city, building_model, houseNodes, stories * 3);
-        int lastID = extruded_faces.size();
+        //Create Geometry
+
+        for (int story = 0; story < stories; story++) {
+            std::vector<DM::Face*> extruded_faces = TBVectorData::ExtrudeFace(city, building_model, houseNodes, 3);
+            int lastID = extruded_faces.size();
+            for (int i = 0; i < lastID; i++) {
+                DM::Face * f = extruded_faces[i];
+                if (i != lastID-1) {
+                    continue;
+                    f->getAttribute("color")->setDoubleVector(wallColor);
+                    f->addAttribute("type", "wall_outside");
+                }
+                else if (story != stories -1){
+                    f->getAttribute("color")->setDoubleVector(roofColor);
+                    f->addAttribute("type", "ceiling");
+                    houseNodes = TBVectorData::getNodeListFromFace(city, f);
+                } else {
+                    f->getAttribute("color")->setDoubleVector(roofColor);
+                    f->addAttribute("type", "ceiling_roof");
+                }
+                building->getAttribute("Model")->setLink("Model", f->getUUID());
+                f->getAttribute("Parent")->setLink(houses.getName(), building->getUUID());
 
 
-        for (int i = 0; i < lastID; i++) {
-            DM::Face * f = extruded_faces[i];
-            if (i != lastID-1) {
-                continue;
-                f->getAttribute("color")->setDoubleVector(wallColor);
-                f->addAttribute("type", "wall_outside");
             }
-            else {
-                f->getAttribute("color")->setDoubleVector(roofColor);
-                f->addAttribute("type", "ceiling_roof");
-            }
-            building->getAttribute("Model")->setLink("Model", f->getUUID());
-            f->getAttribute("Parent")->setLink(houses.getName(), building->getUUID());
-
         }
-
-
 
         //Link Building with Footprint
         DMHelper::LinkComponents(houses, building, footprint, foot_print);
