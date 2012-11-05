@@ -6,6 +6,7 @@
 #include <QTransform>
 #include <dmhelper.h>
 #include <tbvectordata.h>
+#include <cutelittlegeometryhelpers.h>
 
 DM_DECLARE_NODE_NAME(SingleHouse, TestModules)
 SingleHouse::SingleHouse()
@@ -124,21 +125,27 @@ void SingleHouse::run()
     base_plate->addAttribute("type", "ceiling_cellar");
 
     //Create Walls
-    std::vector<DM::Face*> extruded_faces = TBVectorData::ExtrudeFace(city, building_model, houseNodes, stories * 3);
-    int lastID = extruded_faces.size();
 
 
-    for (int i = 0; i < lastID; i++) {
-        DM::Face * f = extruded_faces[i];
-        if (i != lastID-1) {
-            f->addAttribute("type", "wall_outside");
+    for (int story = 0; story < stories; story++) {
+        std::vector<DM::Face*> extruded_faces = TBVectorData::ExtrudeFace(city, building_model, houseNodes, 3);
+        int lastID = extruded_faces.size();
+        for (int i = 0; i < lastID; i++) {
+            DM::Face * f = extruded_faces[i];
+            if (i != lastID-1) {
+                f->addAttribute("type", "wall_outside");
+                CuteLittleGeometryHelpers::CreateHolesInAWall(city, f, 5, 1.5, 1);
+            }
+            else if (story != stories -1){
+                f->addAttribute("type", "ceiling");
+                houseNodes = TBVectorData::getNodeListFromFace(city, f);
+            } else {
+                f->addAttribute("type", "ceiling_roof");
+            }
+            building->getAttribute("Model")->setLink("Model", f->getUUID());
+            f->getAttribute("Parent")->setLink(houses.getName(), building->getUUID());
+
         }
-        else {
-            f->addAttribute("type", "ceiling_roof");
-        }
-        building->getAttribute("Model")->setLink("Model", f->getUUID());
-        f->getAttribute("Parent")->setLink(houses.getName(), building->getUUID());
-
     }
 
 
