@@ -148,9 +148,9 @@ void SingleHouse::run()
             DM::Face * f = extruded_faces[i];
             if (i != lastID-1) {
                 f->addAttribute("type", "wall_outside");
-                f->getAttribute("color")->setDoubleVector(wallColor);
+                f->getAttribute("color")->setDoubleVector(wallColor);               
                 std::vector<DM::Face* > windows = CuteLittleGeometryHelpers::CreateHolesInAWall(city, f, 5, 1.5, 1);
-                foreach (DM::Face * w, windows) {
+                foreach (DM::Face * w, windows) {                    
                     w->addAttribute("type", "window");
                     w->getAttribute("color")->setDoubleVector(windowColor);
                     building->getAttribute("Geometry")->setLink("Geometry", w->getUUID());
@@ -162,6 +162,8 @@ void SingleHouse::run()
                 f->addAttribute("type", "ceiling");
                 f->getAttribute("color")->setDoubleVector(wallColor);
                 houseNodes = TBVectorData::getNodeListFromFace(city, f);
+                //Reverse otherwise extruded wals have the wrong orientation
+                std::reverse(houseNodes.begin(), houseNodes.end());
             } else {
                 f->addAttribute("type", "ceiling_roof");
                 f->getAttribute("color")->setDoubleVector(roofColor);

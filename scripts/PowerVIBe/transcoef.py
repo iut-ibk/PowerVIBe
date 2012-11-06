@@ -42,6 +42,7 @@ class HeatCoefficients:
         try:
             self.typeList.index(part)
         except ValueError:
+            print part
             return 0
         periode = self.buildingPeriode(self.db['before'],year_built)
         

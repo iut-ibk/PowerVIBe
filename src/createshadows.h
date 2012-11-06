@@ -17,7 +17,7 @@ private:
         bool createHourly;
 
         void transformCooridnates(double &x, double &y);
-        DM::Node directionSun(double dAzimuth, double dZenithAngle, double offset);
+        DM::Node directionSun(double dAzimuth, double dZenithAngle);
 
         void testdirectionSun();
 

@@ -88,9 +88,9 @@ void CreateShadows::transformCooridnates(double &x, double &y)
 
 
 
-DM::Node CreateShadows::directionSun(double dAzimuth, double dZenithAngle, double offset)
+DM::Node CreateShadows::directionSun(double dAzimuth, double dZenithAngle)
 {
-    double z = cos(dZenithAngle/180*pi);
+    double z = cos(dZenithAngle/180*pi) ;
     double x = sin(dAzimuth/180*pi) * sin(dZenithAngle/180*pi);
     double y = cos(dAzimuth/180*pi) * sin(dZenithAngle/180*pi);
 
@@ -102,20 +102,20 @@ DM::Node CreateShadows::directionSun(double dAzimuth, double dZenithAngle, doubl
 
 void CreateShadows::testdirectionSun()
 {
-    DM::Node n1 = this->directionSun(0,0, 0);
+    DM::Node n1 = this->directionSun(0,0);
     DM::Logger(DM::Debug) << n1.getX() << n1.getY() << n1.getZ();
 
-    n1 = this->directionSun(90,0,0);
+    n1 = this->directionSun(90,0);
     DM::Logger(DM::Debug) << n1.getX() << n1.getY() << n1.getZ();
 
-    n1 = this->directionSun(90,90,0);
+    n1 = this->directionSun(90,90);
     DM::Logger(DM::Debug) << n1.getX() << n1.getY() << n1.getZ();
 
 
-    n1 = this->directionSun(180,180,0);
+    n1 = this->directionSun(180,180);
     DM::Logger(DM::Debug) << n1.getX() << n1.getY() << n1.getZ();
 
-    n1 = this->directionSun(270,270,0);
+    n1 = this->directionSun(270,270);
     DM::Logger(DM::Debug) << n1.getX() << n1.getY() << n1.getZ();
 }
 
@@ -183,8 +183,8 @@ std::vector<DM::Node> CreateShadows::createRaster(DM::System *sys, DM::Face *f)
 
     //Create Parcels
 
-    unsigned int elements_x = blockWidth/2;
-    unsigned int elements_y = blockHeight/2;
+    unsigned int elements_x = blockWidth/2 + 1;
+    unsigned int elements_y = blockHeight/2 + 1;
     double realwidth = blockWidth / elements_x;
     double realheight = blockHeight / elements_y;
 
@@ -263,12 +263,13 @@ void CreateShadows::run()
         DM::Logger(DM::Debug) << "Face " << uuid;
         //Create Face Point
         DM::Face * f = city->getFace(uuid);
-        //if (f->getAttribute("type")->getString().compare("ceiling_roof") != 0)
-            //continue;
         std::vector<DM::Node*> nodes = TBVectorData::getNodeListFromFace(city, f);
-        DM::Node dir = TBVectorData::NormalVector(*(nodes[0]), *(nodes[1]));
-
+        DM::Node dN1 = *(nodes[1]) - *(nodes[0]);
+        DM::Node dN2 = *(nodes[2]) - *(nodes[0]);
+        DM::Node dir = TBVectorData::NormalVector(dN1, dN2);
         std::vector<DM::Node> centers = this->createRaster(city, f);
+        myfile << f->getAttribute("type")->getString() <<"\t" << f->getUUID() << dir.getX()<<"\t" << dir.getY()<<"\t"<< dir.getZ()<<"\t"<< centers.size()<<"\t" << nodes[0]->getX()<<"\t" << nodes[0]->getY()<<"\t"<< nodes[0]->getZ() <<"\n";
+
         foreach (DM::Node center, centers) {
 
             DM::Node * n1 =  city->addNode(center, sunnodes);
@@ -298,7 +299,7 @@ void CreateShadows::run()
                     //Below horizon
                     if (sunloc->dZenithAngle > 90)
                         continue;
-                    DM::Node sun = this->directionSun(sunloc->dAzimuth,sunloc->dZenithAngle, dir.getZ());
+                    DM::Node sun = this->directionSun(sunloc->dAzimuth,sunloc->dZenithAngle);
 
                     double w = TBVectorData::AngelBetweenVectors(dir, sun) * 180/pi;
 
@@ -349,7 +350,7 @@ void CreateShadows::run()
         f->getAttribute("SolarRediationDayly")->addTimeSeries(day_dates, solarRadiation);
         f->getAttribute("SolarHoursDayly")->addTimeSeries(day_dates, solarHours);
 
-        myfile << f->getAttribute("type")->getString() <<"\t" << f->getUUID() <<"\n";
+
         for (int i = 0; i < solarRadiation.size(); i++)
             myfile << day_dates[i] << "\t" << solarHours[i]<< "\t" << solarRadiation[i] <<"\n";
 
