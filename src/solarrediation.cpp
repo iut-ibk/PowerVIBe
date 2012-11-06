@@ -1,6 +1,6 @@
 #include "solarrediation.h"
 #include <math.h>
-
+#include <iostream>
 double SolarRediation::BeamRadiation(unsigned int dayOftheYear, double elevation, double altitude, double alpha)
 {
     double T_LK = 1; //Linke aotmosheric tubidity factor
@@ -17,10 +17,10 @@ double SolarRediation::BeamRadiation(unsigned int dayOftheYear, double elevation
     double ptop0 = exp(-elevation / 8434.5);
     double delta_h_0Ref = (0.1594 + altitude * (1.123 + 0.065656 * altitude)) /
             (1. + altitude * (28.9344 + 277.3971 * altitude));
-    double h0ref = altitude +  0.061359 * delta_h_0Ref;
+    double h0ref = altitude +  0.061359 * delta_h_0Ref; //rad
 
 
-    double m = ptop0 / (sin(h0ref) + 0.50572 * pow(h0ref /180 * pi + 6.07995, -1.6364));
+    double m = ptop0 / (sin(h0ref) + 0.50572 * pow(h0ref *180 / pi + 6.07995, -1.6364));
 
     double delta_R = 0;
      if (m > 20)
@@ -31,6 +31,8 @@ double SolarRediation::BeamRadiation(unsigned int dayOftheYear, double elevation
 
     double B_0c = G_0  * exp (-0.8662*T_LK * m * delta_R); // irradiance normal to the solar beam
 
-    return B_0c * sin(alpha /180 * pi); //W/m2
+    double radiation =  B_0c * sin(alpha); //W/m2
+
+    return radiation;
 
 }

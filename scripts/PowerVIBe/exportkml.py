@@ -375,7 +375,7 @@ class ExportKML(Module):
             if self.Type == "COMPONENT":
                 print "Component"
                 center = Node(building.getAttribute("centroid_x").getDouble(), building.getAttribute("centroid_y").getDouble(),0.0)
-                LinkAttributes = building.getAttribute("Model").getLinks()
+                LinkAttributes = building.getAttribute("Geometry").getLinks()
                 for attribute in LinkAttributes:
                     objects.append(attribute.uuid)
                 #self.createDAE_KML(city, uuid, objects, center,fld)

@@ -31,7 +31,7 @@ class HeatingCoolingTransmission(Module):
             building = city.getComponent(uuid)
             Le = 0
             print uuid
-            parts = building.getAttribute("Model").getLinks()
+            parts = building.getAttribute("Geometry").getLinks()
             for lpart in parts:
                     part = city.getFace(lpart.uuid)
                     area = TBVectorData_CalculateArea(city, part)
@@ -42,6 +42,7 @@ class HeatingCoolingTransmission(Module):
             Lt = Le + Lu
             building.addAttribute("transmission_coefficient_heating", Lt)
             building.addAttribute("transmission_coefficient_cooling", Lt)
+
             
     def getHelpUrl(self):        
         return "https://docs.google.com/document/pub?id=1s6rJ9mSbTrNU2ZUaF-zALxsdZ0kJZc8RywA-LVtWHgE"

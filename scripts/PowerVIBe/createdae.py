@@ -35,6 +35,7 @@ class CreateDAE(Module):
           b = rgbVector[1]
           g = rgbVector[2]
         effect = material.Effect("effect"+str(id), [], "phong", diffuse=(r,g,b), specular=(r,g,b))
+        #effect = material.Effect("effect"+str(id), [], "phong",  ambient=(r,g,b,1))
         mat = material.Material("material"+str(id), "mymaterial"+str(id), effect)
         mesh.effects.append(effect)
         mesh.materials.append(mat)
@@ -115,7 +116,7 @@ class CreateDAE(Module):
             building = city.getComponent(uuid)
             objects = []
             if self.Type == "COMPONENT":
-                LinkAttributes = building.getAttribute("Model").getLinks()
+                LinkAttributes = building.getAttribute("Geometry").getLinks()
                 for attribute in LinkAttributes:
                     objects.append(attribute.uuid)
             

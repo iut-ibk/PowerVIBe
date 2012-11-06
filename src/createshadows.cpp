@@ -42,10 +42,14 @@ DM_DECLARE_NODE_NAME(CreateShadows, PowerVIBe)
 CreateShadows::CreateShadows()
 {
     buildings = DM::View("BUILDING", DM::COMPONENT, DM::READ);
-    buildings.getAttribute("Model");
+    buildings.getAttribute("Geometry");
 
-    models = DM::View("Model", DM::FACE, DM::READ);
+    models = DM::View("Geometry", DM::FACE, DM::READ);
+    models.addAttribute("SolarRediationDayly");
+    models.addAttribute("SolarRediationHourly");
+    models.addAttribute("SolarHoursDayly");
     models.addLinks("SunRays", sunrays);
+
 
     sunrays = DM::View("SunRays", DM::EDGE, DM::WRITE);
 
@@ -56,6 +60,10 @@ CreateShadows::CreateShadows()
     //data.push_back(buildings);
     data.push_back(models);
     data.push_back(sunrays);
+
+    createRays = false;
+    this->addParameter("CreateRays", DM::BOOL, &createRays);
+
 
     this->addData("city", data);
 
@@ -80,7 +88,7 @@ void CreateShadows::transformCooridnates(double &x, double &y)
 
 
 
-DM::Node CreateShadows::directionSun(double dAzimuth, double dZenithAngle)
+DM::Node CreateShadows::directionSun(double dAzimuth, double dZenithAngle, double offset)
 {
     double z = cos(dZenithAngle/180*pi);
     double x = sin(dAzimuth/180*pi) * sin(dZenithAngle/180*pi);
@@ -94,20 +102,20 @@ DM::Node CreateShadows::directionSun(double dAzimuth, double dZenithAngle)
 
 void CreateShadows::testdirectionSun()
 {
-    DM::Node n1 = this->directionSun(0,0);
+    DM::Node n1 = this->directionSun(0,0, 0);
     DM::Logger(DM::Debug) << n1.getX() << n1.getY() << n1.getZ();
 
-    n1 = this->directionSun(90,0);
+    n1 = this->directionSun(90,0,0);
     DM::Logger(DM::Debug) << n1.getX() << n1.getY() << n1.getZ();
 
-    n1 = this->directionSun(90,90);
+    n1 = this->directionSun(90,90,0);
     DM::Logger(DM::Debug) << n1.getX() << n1.getY() << n1.getZ();
 
 
-    n1 = this->directionSun(180,180);
+    n1 = this->directionSun(180,180,0);
     DM::Logger(DM::Debug) << n1.getX() << n1.getY() << n1.getZ();
 
-    n1 = this->directionSun(270,270);
+    n1 = this->directionSun(270,270,0);
     DM::Logger(DM::Debug) << n1.getX() << n1.getY() << n1.getZ();
 }
 
@@ -205,6 +213,9 @@ std::vector<DM::Node> CreateShadows::createRaster(DM::System *sys, DM::Face *f)
 
 void CreateShadows::run()
 {
+    ofstream myfile;
+    myfile.open ("ress.txt");
+
     DM::System * city = this->getData("city");
 
 
@@ -230,28 +241,48 @@ void CreateShadows::run()
     // constructs AABB tree
     Tree tree(triangles.begin(),triangles.end());
 
+    QDate startDate(2012, 1,1);
+    QDate endDate(2013, 1,1);
+    QDate date = startDate;
+    int numberOfDays = startDate.daysTo(endDate);
+    std::vector<std::string> day_dates;
+    for (int i = 0; i < numberOfDays; i++) {
+        std::stringstream datestring_dm;
+        datestring_dm << date.toString("yyyy-MM-dd").toStdString();
+        day_dates.push_back(datestring_dm.str());
+        date = date.addDays(1);
+    }
 
     int nuuids = model_uuids.size();
     //#pragma omp parallel for
     for (int i = 0; i < nuuids; i++){
+        //CreateInitalSolarRadiationVector
+        std::vector<double> solarRadiation(numberOfDays, 0);
+        std::vector<double> solarHours(numberOfDays, 0);
         std::string uuid = model_uuids[i];
         DM::Logger(DM::Debug) << "Face " << uuid;
         //Create Face Point
         DM::Face * f = city->getFace(uuid);
+        //if (f->getAttribute("type")->getString().compare("ceiling_roof") != 0)
+            //continue;
         std::vector<DM::Node*> nodes = TBVectorData::getNodeListFromFace(city, f);
         DM::Node dir = TBVectorData::NormalVector(*(nodes[0]), *(nodes[1]));
 
         std::vector<DM::Node> centers = this->createRaster(city, f);
         foreach (DM::Node center, centers) {
-            //DM::Node center = TBVectorData::CentroidPlane3D(city, f);
+
             DM::Node * n1 =  city->addNode(center, sunnodes);
 
             f->getAttribute("SunRays")->setLink("SunRays", n1->getUUID());
 
             std::vector<std::string> dates;
+
             std::vector<double> angles;
-            QDate date(2012, 1,1);
+
+            QDate date = startDate;
+            int dayInSimulation = -1;
             do {
+                dayInSimulation++;
                 cTime datum;
                 datum.iYear = date.year();
                 datum.iMonth = date.month();
@@ -267,7 +298,7 @@ void CreateShadows::run()
                     //Below horizon
                     if (sunloc->dZenithAngle > 90)
                         continue;
-                    DM::Node sun = this->directionSun(sunloc->dAzimuth,sunloc->dZenithAngle);
+                    DM::Node sun = this->directionSun(sunloc->dAzimuth,sunloc->dZenithAngle, dir.getZ());
 
                     double w = TBVectorData::AngelBetweenVectors(dir, sun) * 180/pi;
 
@@ -275,8 +306,8 @@ void CreateShadows::run()
                     if (w  > 90 && w < 270)
                         continue;
 
-                    DM::Node pn1 = *n1+sun*0.001;
-                    DM::Node pn2 = *n1+sun*1000;
+                    DM::Node pn1 = *n1+sun*0.0001;
+                    DM::Node pn2 = *n1+sun*100000;
 
                     Point p1(pn1.getX(), pn1.getY(), pn1.getZ());
                     Point p2(pn2.getX(), pn2.getY(), pn2.getZ());
@@ -287,6 +318,11 @@ void CreateShadows::run()
                         continue;
                     }
 
+                    double radiation = SolarRediation::BeamRadiation(date.dayOfYear(), 500, (90 -sunloc->dZenithAngle)/180.*pi ,w/180.*pi);
+                    solarRadiation[dayInSimulation] = solarRadiation[dayInSimulation] + radiation/(double) centers.size();
+                    solarHours[dayInSimulation] = solarHours[dayInSimulation] + 1/(double) centers.size();
+                    if (!createRays)
+                        continue;
                     DM::Node * n2 = city->addNode(*n1+sun);
                     DM::Edge * e = city->addEdge(n1, n2, this->sunrays);
                     std::stringstream datestring;
@@ -301,20 +337,26 @@ void CreateShadows::run()
 
                     e->addAttribute("date", datestring.str());
 
-
-                    double radiation = SolarRediation::BeamRadiation(date.dayOfYear(), 500, 90 -sunloc->dZenithAngle ,w);
-
                     angles.push_back(w);
                 }
                 date = date.addDays(1);
-                n1->getAttribute("sunrays")->addTimeSeries(dates, angles);
-            } while (date.year()< 2013);
+                if (!createRays)
+                    n1->getAttribute("sunrays")->addTimeSeries(dates, angles);
+            } while (date < endDate);
+
         }
-        DM::Logger(DM::Debug) << "left " << nuuids - i;
+
+        f->getAttribute("SolarRediationDayly")->addTimeSeries(day_dates, solarRadiation);
+        f->getAttribute("SolarHoursDayly")->addTimeSeries(day_dates, solarHours);
+
+        myfile << f->getAttribute("type")->getString() <<"\t" << f->getUUID() <<"\n";
+        for (int i = 0; i < solarRadiation.size(); i++)
+            myfile << day_dates[i] << "\t" << solarHours[i]<< "\t" << solarRadiation[i] <<"\n";
+
     }
+    myfile.close();
 
 
-    //this->testdirectionSun();
 
 
 

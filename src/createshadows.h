@@ -11,8 +11,13 @@ private:
         DM::View models;
         DM::View sunrays;
         DM::View sunnodes;
+
+        bool createRays;
+        bool createDayly;
+        bool createHourly;
+
         void transformCooridnates(double &x, double &y);
-        DM::Node directionSun( double dAzimuth, double dZenithAngle);
+        DM::Node directionSun(double dAzimuth, double dZenithAngle, double offset);
 
         void testdirectionSun();
 

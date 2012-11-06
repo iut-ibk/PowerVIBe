@@ -8,7 +8,7 @@ from numpy import genfromtxt
 class HeatCoefficients:
     def __init__(self, filename):
         self.db = genfromtxt(filename, dtype=None, delimiter=',',names=True)
-    
+        self.typeList = ["ceiling_cellar", "ceiling_floor", "wall_outside", "ceiling_roof", "front_door", "window"]
     def buildingPeriode(self, periods, year_built):
         print periods
         print year_built
@@ -39,7 +39,10 @@ class HeatCoefficients:
         - front_door
         """
     def getCoefficients(self, part ,year_built, type="", location='Tirol',  building_standard=""):
-        
+        try:
+            self.typeList.index(part)
+        except ValueError:
+            return 0
         periode = self.buildingPeriode(self.db['before'],year_built)
         
         ress = self.searchDB(periode, type, location,  building_standard)

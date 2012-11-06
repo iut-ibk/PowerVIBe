@@ -41,7 +41,7 @@ SingleHouse::SingleHouse()
 
     footprint = DM::View("Footprint", DM::FACE, DM::WRITE);
 
-    building_model = DM::View("Model", DM::FACE, DM::WRITE);
+    building_model = DM::View("Geometry", DM::FACE, DM::WRITE);
     building_model.addAttribute("type");
 
     std::vector<DM::View> data;
@@ -57,15 +57,29 @@ SingleHouse::SingleHouse()
 
 void SingleHouse::run()
 {
+
+    std::vector<double> roofColor;
+    roofColor.push_back(0.66);
+    roofColor.push_back(0.66);
+    roofColor.push_back(0.66);
+    std::vector<double> wallColor;
+    wallColor.push_back(0.96);
+    wallColor.push_back(0.96);
+    wallColor.push_back(0.86);
+    std::vector<double> windowColor;
+    windowColor.push_back(0.5019608);
+    windowColor.push_back(1.0);
+    windowColor.push_back(0.5019608);
+
     DM::System * city = this->getData("city");
     DM::Component * building = city->addComponent(new DM::Component(), houses);
     double l = 16;
     double b = 10;
     double stories = 2;
-    QPointF f1 ( - l/2,  - b/2);
+    QPointF f1 ( -l/2,  - b/2);
     QPointF f2 (l/2, - b/2);
     QPointF f3 (l/2,  b/2);
-    QPointF f4 ( - l/2, b/2);
+    QPointF f4 (-l/2, b/2);
 
     double angle = 0;
     QPolygonF original = QPolygonF() << f1 << f2 << f3 << f4;
@@ -120,7 +134,7 @@ void SingleHouse::run()
     //Set footprint as floor
 
     DM::Face * base_plate = city->addFace(houseNodes, building_model);
-    building->getAttribute("Model")->setLink("Model", base_plate->getUUID());
+    building->getAttribute("Geometry")->setLink("Geometry", base_plate->getUUID());
     base_plate->getAttribute("Parent")->setLink(houses.getName(), building->getUUID());
     base_plate->addAttribute("type", "ceiling_cellar");
 
@@ -134,15 +148,25 @@ void SingleHouse::run()
             DM::Face * f = extruded_faces[i];
             if (i != lastID-1) {
                 f->addAttribute("type", "wall_outside");
-                CuteLittleGeometryHelpers::CreateHolesInAWall(city, f, 5, 1.5, 1);
+                f->getAttribute("color")->setDoubleVector(wallColor);
+                std::vector<DM::Face* > windows = CuteLittleGeometryHelpers::CreateHolesInAWall(city, f, 5, 1.5, 1);
+                foreach (DM::Face * w, windows) {
+                    w->addAttribute("type", "window");
+                    w->getAttribute("color")->setDoubleVector(windowColor);
+                    building->getAttribute("Geometry")->setLink("Geometry", w->getUUID());
+                    f->getAttribute("Parent")->setLink(houses.getName(), building->getUUID());
+                    city->addComponentToView(w,building_model);
+                }
             }
             else if (story != stories -1){
                 f->addAttribute("type", "ceiling");
+                f->getAttribute("color")->setDoubleVector(wallColor);
                 houseNodes = TBVectorData::getNodeListFromFace(city, f);
             } else {
                 f->addAttribute("type", "ceiling_roof");
+                f->getAttribute("color")->setDoubleVector(roofColor);
             }
-            building->getAttribute("Model")->setLink("Model", f->getUUID());
+            building->getAttribute("Geometry")->setLink("Geometry", f->getUUID());
             f->getAttribute("Parent")->setLink(houses.getName(), building->getUUID());
 
         }
