@@ -2,6 +2,9 @@
 #define CREATESHADOWS_H
 
 #include <dm.h>
+#include <QDate>
+
+struct cSunCoordinates;
 
 class DM_HELPER_DLL_EXPORT CreateShadows : public DM::Module
 {
@@ -17,12 +20,14 @@ private:
         bool createHourly;
 
         void transformCooridnates(double &x, double &y);
-        DM::Node directionSun(double dAzimuth, double dZenithAngle);
+        void directionSun(DM::Node * n, double dAzimuth, double dZenithAngle);
 
-        void testdirectionSun();
 
         std::vector<DM::Node> createRaster(DM::System * sys, DM::Face * f);
 
+
+        /** @brief calculate hourly sun pos for the simulation period */
+        void caclulateSunPositions(const QDate &start, const QDate &end, std::vector<DM::Node*> & sunPos , std::vector<cSunCoordinates *> & sunLoc);
 
 
 

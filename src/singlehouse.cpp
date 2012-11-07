@@ -77,7 +77,7 @@ void SingleHouse::run()
     double b = 10;
     double stories = 2;
     QPointF f1 ( -l/2,  - b/2);
-    QPointF f2 (l/2, - b/2);
+    QPointF f2 (l/2, -b/2);
     QPointF f3 (l/2,  b/2);
     QPointF f4 (-l/2, b/2);
 
@@ -162,10 +162,11 @@ void SingleHouse::run()
                 f->addAttribute("type", "ceiling");
                 f->getAttribute("color")->setDoubleVector(wallColor);
                 houseNodes = TBVectorData::getNodeListFromFace(city, f);
-                //Reverse otherwise extruded wals have the wrong orientation
-                std::reverse(houseNodes.begin(), houseNodes.end());
+                //Reverse otherwise extruded walls have the wrong orientation
+                //std::reverse(houseNodes.begin(), houseNodes.end());
             } else {
                 f->addAttribute("type", "ceiling_roof");
+                //std::reverse(houseNodes.begin(), houseNodes.end());
                 f->getAttribute("color")->setDoubleVector(roofColor);
             }
             building->getAttribute("Geometry")->setLink("Geometry", f->getUUID());

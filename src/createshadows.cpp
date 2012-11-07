@@ -88,35 +88,11 @@ void CreateShadows::transformCooridnates(double &x, double &y)
 
 
 
-DM::Node CreateShadows::directionSun(double dAzimuth, double dZenithAngle)
+void CreateShadows::directionSun(DM::Node * n, double dAzimuth, double dZenithAngle)
 {
-    double z = cos(dZenithAngle/180*pi) ;
-    double x = sin(dAzimuth/180*pi) * sin(dZenithAngle/180*pi);
-    double y = cos(dAzimuth/180*pi) * sin(dZenithAngle/180*pi);
-
-    return DM::Node(x,y,z);
-
-
-
-}
-
-void CreateShadows::testdirectionSun()
-{
-    DM::Node n1 = this->directionSun(0,0);
-    DM::Logger(DM::Debug) << n1.getX() << n1.getY() << n1.getZ();
-
-    n1 = this->directionSun(90,0);
-    DM::Logger(DM::Debug) << n1.getX() << n1.getY() << n1.getZ();
-
-    n1 = this->directionSun(90,90);
-    DM::Logger(DM::Debug) << n1.getX() << n1.getY() << n1.getZ();
-
-
-    n1 = this->directionSun(180,180);
-    DM::Logger(DM::Debug) << n1.getX() << n1.getY() << n1.getZ();
-
-    n1 = this->directionSun(270,270);
-    DM::Logger(DM::Debug) << n1.getX() << n1.getY() << n1.getZ();
+    n->setZ(cos(dZenithAngle/180*pi));
+    n->setX(sin(dAzimuth/180*pi) * sin(dZenithAngle/180*pi));
+    n->setY(cos(dAzimuth/180*pi) * sin(dZenithAngle/180*pi));
 }
 
 std::vector<DM::Node> CreateShadows::createRaster(DM::System *sys, DM::Face *f)
@@ -207,6 +183,48 @@ std::vector<DM::Node> CreateShadows::createRaster(DM::System *sys, DM::Face *f)
 
 }
 
+void CreateShadows::caclulateSunPositions(const QDate &start, const QDate &end, std::vector<DM::Node*> & sunPos , std::vector<cSunCoordinates *> & sunLoc)
+{
+    QDate date = start;
+    int totalHours = -1;
+
+    cLocation pos;
+    pos.dLatitude = 47.2611;
+    pos.dLongitude = -11.3928;
+
+    do {
+
+        cTime datum;
+        datum.iYear = date.year();
+        datum.iMonth = date.month();
+        datum.iDay = date.day();
+        datum.dHours = 0;
+        datum.dMinutes = 0;
+        datum.dSeconds = 0;
+
+
+        for (int h = 0; h < 24; h++) {
+            totalHours++;
+            datum.dHours = h;
+            sunLoc[totalHours] = new cSunCoordinates();
+            sunpos(datum, pos, sunLoc[totalHours]);
+
+            //Below horizon
+            if (sunLoc[totalHours]->dZenithAngle > 90) {
+                sunPos[totalHours] = 0;
+                continue;
+            }
+
+            sunPos[totalHours] = new DM::Node();
+            this->directionSun(sunPos[totalHours], sunLoc[totalHours]->dAzimuth, sunLoc[totalHours]->dZenithAngle);
+
+        }
+
+
+        date = date.addDays(1);
+    } while (date < end);
+}
+
 
 
 
@@ -217,11 +235,6 @@ void CreateShadows::run()
     myfile.open ("ress.txt");
 
     DM::System * city = this->getData("city");
-
-
-    cLocation pos;
-    pos.dLatitude = 47.2611;
-    pos.dLongitude = -11.3928;
 
     std::vector<std::string> model_uuids =  city->getUUIDs(models);
 
@@ -254,8 +267,23 @@ void CreateShadows::run()
     }
 
     int nuuids = model_uuids.size();
+
+
+    std::vector<DM::Node * > sunPos(numberOfDays*24);
+
+    std::vector<cSunCoordinates *> sunLocs(numberOfDays*24);
+    for (int i = 0; i < numberOfDays*24; i++) {
+        sunPos[i] = 0,
+        sunLocs[i] = 0;
+    }
+
+    //Prepare sun pos vector
+    this->caclulateSunPositions(startDate, endDate, sunPos, sunLocs);
+
     //#pragma omp parallel for
     for (int i = 0; i < nuuids; i++){
+
+
         //CreateInitalSolarRadiationVector
         std::vector<double> solarRadiation(numberOfDays, 0);
         std::vector<double> solarHours(numberOfDays, 0);
@@ -263,6 +291,8 @@ void CreateShadows::run()
         DM::Logger(DM::Debug) << "Face " << uuid;
         //Create Face Point
         DM::Face * f = city->getFace(uuid);
+        //if (f->getAttribute("type")->getString().compare("ceiling_roof") != 0)
+            //continue;
         std::vector<DM::Node*> nodes = TBVectorData::getNodeListFromFace(city, f);
         DM::Node dN1 = *(nodes[1]) - *(nodes[0]);
         DM::Node dN2 = *(nodes[2]) - *(nodes[0]);
@@ -271,6 +301,8 @@ void CreateShadows::run()
         myfile << f->getAttribute("type")->getString() <<"\t" << f->getUUID() << dir.getX()<<"\t" << dir.getY()<<"\t"<< dir.getZ()<<"\t"<< centers.size()<<"\t" << nodes[0]->getX()<<"\t" << nodes[0]->getY()<<"\t"<< nodes[0]->getZ() <<"\n";
 
         foreach (DM::Node center, centers) {
+
+            int totalHours = 0;
 
             DM::Node * n1 =  city->addNode(center, sunnodes);
 
@@ -282,53 +314,44 @@ void CreateShadows::run()
 
             QDate date = startDate;
             int dayInSimulation = -1;
+            int hoursInSimulation = -1;
+
             do {
                 dayInSimulation++;
-                cTime datum;
-                datum.iYear = date.year();
-                datum.iMonth = date.month();
-                datum.iDay = date.day();
-                datum.dHours = 0;
-                datum.dMinutes = 0;
-                datum.dSeconds = 0;
                 for (int h = 0; h < 24; h++) {
-                    datum.dHours = h;
-                    cSunCoordinates * sunloc = new cSunCoordinates();
-                    sunpos(datum, pos, sunloc);
-
-                    //Below horizon
-                    if (sunloc->dZenithAngle > 90)
+                    hoursInSimulation++;
+                    if (!sunPos[hoursInSimulation])
                         continue;
-                    DM::Node sun = this->directionSun(sunloc->dAzimuth,sunloc->dZenithAngle);
 
-                    double w = TBVectorData::AngelBetweenVectors(dir, sun) * 180/pi;
+                    double w = TBVectorData::AngelBetweenVectors(dir,  *(sunPos[hoursInSimulation]) ) * 180/pi;
 
+                    //DM::Logger(DM::Debug) << h << " " << sunPos[hoursInSimulation]->getZ() << " " << w <<" " << 90 -sunLocs[hoursInSimulation]->dZenithAngle;
                     //No direct sun
                     if (w  > 90 && w < 270)
                         continue;
 
-                    DM::Node pn1 = *n1+sun*0.0001;
-                    DM::Node pn2 = *n1+sun*100000;
+                    DM::Node pn1 = *n1+*(sunPos[hoursInSimulation])*0.0001;
+                    DM::Node pn2 = *n1+*(sunPos[hoursInSimulation])*10000;
 
                     Point p1(pn1.getX(), pn1.getY(), pn1.getZ());
                     Point p2(pn2.getX(), pn2.getY(), pn2.getZ());
                     Segment segment_query(p1,p2);
 
                     //Check if Intersects
-                    if (tree.number_of_intersected_primitives(segment_query)> 0) {
+                    if (tree.do_intersect(segment_query)> 0) {
                         continue;
                     }
 
-                    double radiation = SolarRediation::BeamRadiation(date.dayOfYear(), 500, (90 -sunloc->dZenithAngle)/180.*pi ,w/180.*pi);
+                    double radiation = SolarRediation::BeamRadiation(date.dayOfYear(), 500, (90 -sunLocs[hoursInSimulation]->dZenithAngle)/180.*pi ,w/180.*pi);
                     solarRadiation[dayInSimulation] = solarRadiation[dayInSimulation] + radiation/(double) centers.size();
                     solarHours[dayInSimulation] = solarHours[dayInSimulation] + 1/(double) centers.size();
                     if (!createRays)
                         continue;
-                    DM::Node * n2 = city->addNode(*n1+sun);
+                    DM::Node * n2 = city->addNode(*n1+*(sunPos[hoursInSimulation]));
                     DM::Edge * e = city->addEdge(n1, n2, this->sunrays);
                     std::stringstream datestring;
                     datestring << date.toString("yyyy-MM-dd").toStdString();
-                    QTime t(datum.dHours, datum.dMinutes, datum.dSeconds);
+                    QTime t(h, 0,0);
                     datestring << "T" <<  t.toString("hh:mm:ss").toStdString() << "Z";
 
                     std::stringstream datestring_dm;
@@ -344,7 +367,6 @@ void CreateShadows::run()
                 if (!createRays)
                     n1->getAttribute("sunrays")->addTimeSeries(dates, angles);
             } while (date < endDate);
-
         }
 
         f->getAttribute("SolarRediationDayly")->addTimeSeries(day_dates, solarRadiation);
@@ -357,7 +379,11 @@ void CreateShadows::run()
     }
     myfile.close();
 
-
+    for (int i = 0; i < numberOfDays*24; i++) {
+        if (sunPos[i])
+            delete sunPos[i];
+        delete sunLocs[i];
+    }
 
 
 
