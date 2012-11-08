@@ -6,7 +6,7 @@
 #include <QTransform>
 #include <dmhelper.h>
 #include <tbvectordata.h>
-
+#include <cutelittlegeometryhelpers.h>
 
 DM_DECLARE_NODE_NAME(CreateSingleFamilyHouses, BlockCity)
 
@@ -27,7 +27,7 @@ CreateSingleFamilyHouses::CreateSingleFamilyHouses()
     parcels.getAttribute("centroid_y");
     
 
-    building_model = DM::View("Model", DM::FACE, DM::WRITE);
+    building_model = DM::View("Geometry", DM::FACE, DM::WRITE);
     building_model.addAttribute("type");
 
     houses.addAttribute("built_year");
@@ -76,18 +76,12 @@ void CreateSingleFamilyHouses::run()
     DM::System * city = this->getData("City");
     DM::SpatialNodeHashMap spatialNodeMap(city, 100);
 
-    std::vector<double> roofColor;
-    roofColor.push_back(0.66);
-    roofColor.push_back(0.66);
-    roofColor.push_back(0.66);
-    std::vector<double> wallColor;
-    wallColor.push_back(0.96);
-    wallColor.push_back(0.96);
-    wallColor.push_back(0.86);
-
     std::vector<std::string> parcelUUIDs = city->getUUIDs(parcels);
-    foreach (std::string parcelUUID, parcelUUIDs) {
-        DM::Face * parcel = city->getFace(parcelUUID);
+
+    int nparcels = parcelUUIDs.size();
+
+    for (int i = 0; i < nparcels; i++) {
+        DM::Face * parcel = city->getFace(parcelUUIDs[i]);
         std::vector<DM::Node * > nodes  = TBVectorData::getNodeListFromFace(city, parcel);
         
         std::vector<DM::Node> bB;
@@ -104,7 +98,8 @@ void CreateSingleFamilyHouses::run()
         QPointF f3 (centroid.getX() + l/2, centroid.getY() + b/2);
         QPointF f4 (centroid.getX() - l/2, centroid.getY() + b/2);
         
-        
+        double cnetroid_x = centroid.getX() ;
+        double cnetroid_y = centroid.getY() ;
         QPolygonF original = QPolygonF() << f1 << f2 << f3 << f4;
         QTransform transform = QTransform().rotate(angle);
         QPolygonF rotated = transform.map(original);
@@ -154,41 +149,7 @@ void CreateSingleFamilyHouses::run()
         building->addAttribute("T_heating", 20);
         building->addAttribute("T_cooling", 26);
 
-        //Set footprint as floor
-        DM::Face * base_plate = city->addFace(houseNodes, building_model);
-        building->getAttribute("Model")->setLink("Model", base_plate->getUUID());
-        base_plate->getAttribute("Parent")->setLink(houses.getName(), building->getUUID());
-        base_plate->addAttribute("type", "ceiling_cellar");
-
-        //Create Geometry
-
-        for (int story = 0; story < stories; story++) {
-            std::vector<DM::Face*> extruded_faces = TBVectorData::ExtrudeFace(city, building_model, houseNodes, 3);
-            int lastID = extruded_faces.size();
-            for (int i = 0; i < lastID; i++) {
-                DM::Face * f = extruded_faces[i];
-                if (i != lastID-1) {
-                    continue;
-                    f->getAttribute("color")->setDoubleVector(wallColor);
-                    f->addAttribute("type", "wall_outside");
-                }
-                else if (story != stories -1){
-                    f->getAttribute("color")->setDoubleVector(roofColor);
-                    f->addAttribute("type", "ceiling");
-                    houseNodes = TBVectorData::getNodeListFromFace(city, f);
-                } else {
-                    f->getAttribute("color")->setDoubleVector(roofColor);
-                    f->addAttribute("type", "ceiling_roof");
-                }
-                building->getAttribute("Model")->setLink("Model", f->getUUID());
-                f->getAttribute("Parent")->setLink(houses.getName(), building->getUUID());
-
-
-            }
-        }
-
-        //Link Building with Footprint
-        DMHelper::LinkComponents(houses, building, footprint, foot_print);
+        CuteLittleGeometryHelpers::CreateStandardBuilding(city, houses, building_model, building, houseNodes, stories);
 
         //Create Links
         building->getAttribute("PARCEL")->setLink(parcels.getName(), parcel->getUUID());

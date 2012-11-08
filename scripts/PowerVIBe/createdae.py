@@ -110,15 +110,15 @@ class CreateDAE(Module):
         
         city = self.getData("City")   
         uuids = city.getUUIDs(View(self.ViewName, COMPONENT, READ))
-     
+        objects = []
         for uuid in uuids:
             #getLinks
             building = city.getComponent(uuid)
-            objects = []
+            
             if self.Type == "COMPONENT":
                 LinkAttributes = building.getAttribute("Geometry").getLinks()
                 for attribute in LinkAttributes:
                     objects.append(attribute.uuid)
             
-            self.createDAE_KML(city, uuid, objects)
+        self.createDAE_KML(city, uuid, objects)
 

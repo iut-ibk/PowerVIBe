@@ -18,6 +18,7 @@ class HeatCoefficients:
                 return prev_p
             prev_p = p
         return periods[len(periods)-1]
+        
 
     def searchDB(self, periode, type, location,  building_standard):
         

@@ -14,7 +14,7 @@
 #include <CGAL/Polyhedron_3.h>
 #include <sunpos.h>
 #include <QDate>
-
+#include <omp.h>
 
 #include <ogr_spatialref.h>
 #include <ogrsf_frmts.h>
@@ -45,9 +45,9 @@ CreateShadows::CreateShadows()
     buildings.getAttribute("Geometry");
 
     models = DM::View("Geometry", DM::FACE, DM::READ);
-    models.addAttribute("SolarRediationDayly");
-    models.addAttribute("SolarRediationHourly");
-    models.addAttribute("SolarHoursDayly");
+    models.addAttribute("solar_radiation_dayly");
+    models.addAttribute("solar_radiation_hourly");
+    models.addAttribute("solar_hours_dayly");
     models.addLinks("SunRays", sunrays);
 
 
@@ -57,7 +57,7 @@ CreateShadows::CreateShadows()
     sunnodes.addAttribute("sunrays");
 
     std::vector<DM::View> data;
-    //data.push_back(buildings);
+    data.push_back(buildings);
     data.push_back(models);
     data.push_back(sunrays);
 
@@ -225,14 +225,10 @@ void CreateShadows::caclulateSunPositions(const QDate &start, const QDate &end, 
     } while (date < end);
 }
 
-
-
-
-
 void CreateShadows::run()
 {
-    ofstream myfile;
-    myfile.open ("ress.txt");
+    //ofstream myfile;
+    //myfile.open ("ress.txt");
 
     DM::System * city = this->getData("city");
 
@@ -254,6 +250,8 @@ void CreateShadows::run()
     // constructs AABB tree
     Tree tree(triangles.begin(),triangles.end());
 
+
+    tree.build();
     QDate startDate(2012, 1,1);
     QDate endDate(2013, 1,1);
     QDate date = startDate;
@@ -273,39 +271,49 @@ void CreateShadows::run()
 
     std::vector<cSunCoordinates *> sunLocs(numberOfDays*24);
     for (int i = 0; i < numberOfDays*24; i++) {
-        sunPos[i] = 0,
+        sunPos[i] = 0;
         sunLocs[i] = 0;
     }
 
     //Prepare sun pos vector
     this->caclulateSunPositions(startDate, endDate, sunPos, sunLocs);
 
-    //#pragma omp parallel for
+
+    int TODO = nuuids;
     for (int i = 0; i < nuuids; i++){
-
-
         //CreateInitalSolarRadiationVector
         std::vector<double> solarRadiation(numberOfDays, 0);
         std::vector<double> solarHours(numberOfDays, 0);
         std::string uuid = model_uuids[i];
-        DM::Logger(DM::Debug) << "Face " << uuid;
+        //DM::Logger(DM::Debug) << "Face " << uuid;
         //Create Face Point
         DM::Face * f = city->getFace(uuid);
+        //myfile << uuid << "\t" << f->getAttribute("type")->getString() << "\n";
         //if (f->getAttribute("type")->getString().compare("ceiling_roof") != 0)
-            //continue;
+        //continue;
         std::vector<DM::Node*> nodes = TBVectorData::getNodeListFromFace(city, f);
         DM::Node dN1 = *(nodes[1]) - *(nodes[0]);
         DM::Node dN2 = *(nodes[2]) - *(nodes[0]);
         DM::Node dir = TBVectorData::NormalVector(dN1, dN2);
         std::vector<DM::Node> centers = this->createRaster(city, f);
-        myfile << f->getAttribute("type")->getString() <<"\t" << f->getUUID() << dir.getX()<<"\t" << dir.getY()<<"\t"<< dir.getZ()<<"\t"<< centers.size()<<"\t" << nodes[0]->getX()<<"\t" << nodes[0]->getY()<<"\t"<< nodes[0]->getZ() <<"\n";
 
-        foreach (DM::Node center, centers) {
+        //Angle Between Vectors since face is planar the it stays the same for all positions
+        std::vector<double> directions(numberOfDays*24,0);
+        std::vector<double> beamradiation(numberOfDays*24,0);
+        for (int h = 0; h < numberOfDays*24; h++){
+            if (!sunPos[h])
+                continue;
+            directions[h]= TBVectorData::AngelBetweenVectors(dir,  *(sunPos[h]) ) * 180/pi;
+            beamradiation[h] = SolarRediation::BeamRadiation((int)h/24, 500, (90 -sunLocs[h]->dZenithAngle)/180.*pi ,directions[h]/180.*pi);
+        }
 
-            int totalHours = 0;
 
-            DM::Node * n1 =  city->addNode(center, sunnodes);
-
+        date = startDate;
+        int numberofCheckedIntersections = 0;
+        int numberOfCenters = centers.size();
+        #pragma omp parallel for
+        for (int c = 0; c < numberOfCenters; c++) {
+            DM::Node * n1 =  city->addNode(centers[c], sunnodes);
             f->getAttribute("SunRays")->setLink("SunRays", n1->getUUID());
 
             std::vector<std::string> dates;
@@ -323,26 +331,32 @@ void CreateShadows::run()
                     if (!sunPos[hoursInSimulation])
                         continue;
 
-                    double w = TBVectorData::AngelBetweenVectors(dir,  *(sunPos[hoursInSimulation]) ) * 180/pi;
+                    double w = directions[hoursInSimulation];
 
                     //DM::Logger(DM::Debug) << h << " " << sunPos[hoursInSimulation]->getZ() << " " << w <<" " << 90 -sunLocs[hoursInSimulation]->dZenithAngle;
                     //No direct sun
                     if (w  > 90 && w < 270)
                         continue;
 
-                    DM::Node pn1 = *n1+*(sunPos[hoursInSimulation])*0.0001;
-                    DM::Node pn2 = *n1+*(sunPos[hoursInSimulation])*10000;
+                    double x1 = n1->getX();
+                    double y1 = n1->getY();
+                    double z1 = n1->getZ();
 
-                    Point p1(pn1.getX(), pn1.getY(), pn1.getZ());
-                    Point p2(pn2.getX(), pn2.getY(), pn2.getZ());
+                    double sx1 = sunPos[hoursInSimulation]->getX();
+                    double sy1 = sunPos[hoursInSimulation]->getY();
+                    double sz1 = sunPos[hoursInSimulation]->getZ();
+
+                    Point p1(x1 + sx1 * 0.0001 , y1 + sy1 * 0.0001, z1 + sz1 * 0.0001);
+                    Point p2(x1 + sx1 * 10000 , y1 + sy1 * 10000, z1 + sz1 * 10000);
                     Segment segment_query(p1,p2);
 
+                    numberofCheckedIntersections++;
                     //Check if Intersects
                     if (tree.do_intersect(segment_query)> 0) {
                         continue;
                     }
 
-                    double radiation = SolarRediation::BeamRadiation(date.dayOfYear(), 500, (90 -sunLocs[hoursInSimulation]->dZenithAngle)/180.*pi ,w/180.*pi);
+                    double radiation = beamradiation[hoursInSimulation];
                     solarRadiation[dayInSimulation] = solarRadiation[dayInSimulation] + radiation/(double) centers.size();
                     solarHours[dayInSimulation] = solarHours[dayInSimulation] + 1/(double) centers.size();
                     if (!createRays)
@@ -364,20 +378,21 @@ void CreateShadows::run()
                     angles.push_back(w);
                 }
                 date = date.addDays(1);
+
                 if (!createRays)
                     n1->getAttribute("sunrays")->addTimeSeries(dates, angles);
             } while (date < endDate);
         }
+        TODO--;
+        DM::Logger(DM::Debug) << "intersections checked " << numberofCheckedIntersections << " TODO " << TODO;
+        f->getAttribute("solar_radiation_dayly")->addTimeSeries(day_dates, solarRadiation);
+        f->getAttribute("solar_hourss_dayly")->addTimeSeries(day_dates, solarHours);
 
-        f->getAttribute("SolarRediationDayly")->addTimeSeries(day_dates, solarRadiation);
-        f->getAttribute("SolarHoursDayly")->addTimeSeries(day_dates, solarHours);
 
-
-        for (int i = 0; i < solarRadiation.size(); i++)
-            myfile << day_dates[i] << "\t" << solarHours[i]<< "\t" << solarRadiation[i] <<"\n";
+        //for (int i = 0; i < solarRadiation.size(); i++)
+        //myfile << day_dates[i] << "\t" << solarHours[i]<< "\t" << solarRadiation[i] <<"\n";
 
     }
-    myfile.close();
 
     for (int i = 0; i < numberOfDays*24; i++) {
         if (sunPos[i])

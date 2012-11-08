@@ -37,7 +37,7 @@ SingleHouse::SingleHouse()
     houses.addAttribute("T_heating");
     houses.addAttribute("T_cooling");
 
-    houses.addAttribute("Model");
+    houses.addAttribute("Geometry");
 
     footprint = DM::View("Footprint", DM::FACE, DM::WRITE);
 
@@ -48,8 +48,10 @@ SingleHouse::SingleHouse()
     data.push_back(houses);
     data.push_back(footprint);
     data.push_back(building_model);
-
-
+    heatingT = 18;
+    buildyear = 1985;
+    this->addParameter("HeatingT", DM::DOUBLE, &heatingT);
+    this->addParameter("buildyear", DM::INT, &buildyear);
     this->addData("city", data);
 
 
@@ -58,18 +60,6 @@ SingleHouse::SingleHouse()
 void SingleHouse::run()
 {
 
-    std::vector<double> roofColor;
-    roofColor.push_back(0.66);
-    roofColor.push_back(0.66);
-    roofColor.push_back(0.66);
-    std::vector<double> wallColor;
-    wallColor.push_back(0.96);
-    wallColor.push_back(0.96);
-    wallColor.push_back(0.86);
-    std::vector<double> windowColor;
-    windowColor.push_back(0.5019608);
-    windowColor.push_back(1.0);
-    windowColor.push_back(0.5019608);
 
     DM::System * city = this->getData("city");
     DM::Component * building = city->addComponent(new DM::Component(), houses);
@@ -99,13 +89,14 @@ void SingleHouse::run()
     houseNodes.push_back(houseNodes[0]);
 
 
-
     //Create Building and Footprints
     DM::Face * foot_print = city->addFace(houseNodes, footprint);
+    //Link Building with Footprint
+    DMHelper::LinkComponents(houses, building, footprint, foot_print);
 
     Node  n = TBVectorData::CaclulateCentroid(city, foot_print);
     building->addAttribute("type", "single_family_house");
-    building->addAttribute("built_year", 1980);
+    building->addAttribute("built_year", buildyear);
     building->addAttribute("stories", stories);
     building->addAttribute("stories_below", 0); //cellar counts as story
     building->addAttribute("stories_height",3 );
@@ -128,57 +119,11 @@ void SingleHouse::run()
     building->addAttribute("roof_used", 0);
 
 
-    building->addAttribute("T_heating", 20);
+    building->addAttribute("T_heating", heatingT);
     building->addAttribute("T_cooling", 26);
 
-    //Set footprint as floor
+    CuteLittleGeometryHelpers::CreateStandardBuilding(city, houses, building_model, building, houseNodes, 2);
 
-    DM::Face * base_plate = city->addFace(houseNodes, building_model);
-    building->getAttribute("Geometry")->setLink("Geometry", base_plate->getUUID());
-    base_plate->getAttribute("Parent")->setLink(houses.getName(), building->getUUID());
-    base_plate->addAttribute("type", "ceiling_cellar");
-
-    //Create Walls
-
-
-    for (int story = 0; story < stories; story++) {
-        std::vector<DM::Face*> extruded_faces = TBVectorData::ExtrudeFace(city, building_model, houseNodes, 3);
-        int lastID = extruded_faces.size();
-        for (int i = 0; i < lastID; i++) {
-            DM::Face * f = extruded_faces[i];
-            if (i != lastID-1) {
-                f->addAttribute("type", "wall_outside");
-                f->getAttribute("color")->setDoubleVector(wallColor);               
-                std::vector<DM::Face* > windows = CuteLittleGeometryHelpers::CreateHolesInAWall(city, f, 5, 1.5, 1);
-                foreach (DM::Face * w, windows) {                    
-                    w->addAttribute("type", "window");
-                    w->getAttribute("color")->setDoubleVector(windowColor);
-                    building->getAttribute("Geometry")->setLink("Geometry", w->getUUID());
-                    f->getAttribute("Parent")->setLink(houses.getName(), building->getUUID());
-                    city->addComponentToView(w,building_model);
-                }
-            }
-            else if (story != stories -1){
-                f->addAttribute("type", "ceiling");
-                f->getAttribute("color")->setDoubleVector(wallColor);
-                houseNodes = TBVectorData::getNodeListFromFace(city, f);
-                //Reverse otherwise extruded walls have the wrong orientation
-                //std::reverse(houseNodes.begin(), houseNodes.end());
-            } else {
-                f->addAttribute("type", "ceiling_roof");
-                //std::reverse(houseNodes.begin(), houseNodes.end());
-                f->getAttribute("color")->setDoubleVector(roofColor);
-            }
-            building->getAttribute("Geometry")->setLink("Geometry", f->getUUID());
-            f->getAttribute("Parent")->setLink(houses.getName(), building->getUUID());
-
-        }
-    }
-
-
-
-    //Link Building with Footprint
-    DMHelper::LinkComponents(houses, building, footprint, foot_print);
 
 
 

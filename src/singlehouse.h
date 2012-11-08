@@ -12,6 +12,9 @@ private:
         DM::View footprint;
         DM::View building_model;
 
+        double heatingT;
+        int buildyear;
+
 public:
     SingleHouse();
     void run();
