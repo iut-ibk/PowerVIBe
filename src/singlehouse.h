@@ -14,6 +14,7 @@ private:
 
         double heatingT;
         int buildyear;
+        int stories;
 
 public:
     SingleHouse();

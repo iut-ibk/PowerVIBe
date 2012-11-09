@@ -11,7 +11,7 @@
 DM_DECLARE_NODE_NAME(SingleHouse, TestModules)
 SingleHouse::SingleHouse()
 {
-    houses = DM::View("BUILDING", DM::COMPONENT, DM::WRITE);
+    houses = DM::View("BUILDING", DM::FACE, DM::WRITE);
     houses.addAttribute("built_year");
     houses.addAttribute("stories");
     houses.addAttribute("stories_below"); //cellar counts as story
@@ -38,6 +38,7 @@ SingleHouse::SingleHouse()
     houses.addAttribute("T_cooling");
 
     houses.addAttribute("Geometry");
+    houses.addAttribute("V_living");
 
     footprint = DM::View("Footprint", DM::FACE, DM::WRITE);
 
@@ -48,10 +49,12 @@ SingleHouse::SingleHouse()
     data.push_back(houses);
     data.push_back(footprint);
     data.push_back(building_model);
-    heatingT = 18;
+    heatingT = 21;
     buildyear = 1985;
+    stories = 1;
     this->addParameter("HeatingT", DM::DOUBLE, &heatingT);
     this->addParameter("buildyear", DM::INT, &buildyear);
+    this->addParameter("stories", DM::INT, &stories);
     this->addData("city", data);
 
 
@@ -60,12 +63,10 @@ SingleHouse::SingleHouse()
 void SingleHouse::run()
 {
 
-
     DM::System * city = this->getData("city");
-    DM::Component * building = city->addComponent(new DM::Component(), houses);
+
     double l = 16;
     double b = 10;
-    double stories = 2;
     QPointF f1 ( -l/2,  - b/2);
     QPointF f2 (l/2, -b/2);
     QPointF f3 (l/2,  b/2);
@@ -78,6 +79,8 @@ void SingleHouse::run()
 
     std::vector<DM::Node * > houseNodes;
 
+
+
     foreach (QPointF p, rotated) {
         houseNodes.push_back(city->addNode(p.x(), p.y(), 0));
 
@@ -88,6 +91,7 @@ void SingleHouse::run()
     }
     houseNodes.push_back(houseNodes[0]);
 
+    DM::Component * building = city->addFace(houseNodes, houses);
 
     //Create Building and Footprints
     DM::Face * foot_print = city->addFace(houseNodes, footprint);
@@ -122,7 +126,9 @@ void SingleHouse::run()
     building->addAttribute("T_heating", heatingT);
     building->addAttribute("T_cooling", 26);
 
-    CuteLittleGeometryHelpers::CreateStandardBuilding(city, houses, building_model, building, houseNodes, 2);
+    building->addAttribute("V_living", l*b*stories * 3);
+
+    CuteLittleGeometryHelpers::CreateStandardBuilding(city, houses, building_model, building, houseNodes, stories);
 
 
 

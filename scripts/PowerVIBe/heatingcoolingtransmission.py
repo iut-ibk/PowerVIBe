@@ -15,6 +15,7 @@ class HeatingCoolingTransmission(Module):
         self.buildings.getAttribute("built_year")
         self.buildings.addAttribute("transmission_coefficient_heating")
         self.buildings.addAttribute("transmission_coefficient_cooling")
+        #self.buildings.addAttribute("transmission_coefficient_ventilation")
         datastream = []
         datastream.append(self.buildings)
         self.addData("City", datastream)    
@@ -30,17 +31,20 @@ class HeatingCoolingTransmission(Module):
         for uuid in uuids:
             building = city.getComponent(uuid)
             Le = 0
-            print uuid
+            #print uuid
             parts = building.getAttribute("Geometry").getLinks()
             for lpart in parts:
                     part = city.getFace(lpart.uuid)
                     area = TBVectorData_CalculateArea(city, part)
-                    U = coefDB.getCoefficients(part.getAttribute("type").getString(), building.getAttribute("built_year").getDouble() , building.getAttribute("type").getString())
-                    print str(U) + str(part.getAttribute("type").getString())
-                    Le += area*U
-            Lu = building.getAttribute("gross_floor_area").getDouble() * 0.7072
-            Lt = Le + Lu
+                    U = coefDB.getCoefficients(part.getAttribute("type").getString(), building.getAttribute("built_year").getDouble() , building.getAttribute("type").getString())                    
+                    l = area*U
+                    if part.getAttribute("type").getString() == "ceiling_cellar":
+                        l = l*0.7
+                    Le += l
+            Lv = building.getAttribute("gross_floor_area").getDouble() * 0.7072 * 0.4
+            Lt = Le + Lv
             building.addAttribute("transmission_coefficient_heating", Lt)
+            #building.addAttribute("transmission_coefficient_ventilation", Lv)
             building.addAttribute("transmission_coefficient_cooling", Lt)
 
             

@@ -43,26 +43,26 @@ class HeatCoefficients:
         try:
             self.typeList.index(part)
         except ValueError:
-            print part
+            #print part
             return 0
         periode = self.buildingPeriode(self.db['before'],year_built)
         
         ress = self.searchDB(periode, type, location,  building_standard)
         if len(ress) > 0:
-            print ress
-            print part
+            #print ress
+            #print part
             return ress[0][part]
     
         ress = self.searchDB(periode, type, location,  "")
         if len(ress) > 0:
-            print ress
-            print part
+            #print ress
+            #print part
             return ress[0][part]
     
         ress = self.searchDB(periode, "", location,  "")
         if len(ress) > 0:
-            print ress
-            print part
+            #print ress
+            #print part
             return ress[0][part]
         return ress
 

@@ -15,9 +15,12 @@ class MonthlyHeatingAndCooling(Module):
         self.buildings.getAttribute("T_cooling")
         self.buildings.getAttribute("T_heating")
         self.buildings.getAttribute("Geometry")
+        self.buildings.getAttribute("V_living")        
         
-        self.buildings.addAttribute("heating_days_monthly")
-        self.buildings.addAttribute("cooling_days_monthly")
+        self.buildings.addAttribute("heating_loss_monthly")
+        self.buildings.addAttribute("solar_energy_montlhy")
+        self.buildings.addAttribute("heating_demand_monthly")
+        self.buildings.addAttribute("anual_heating_demand")
         
         self.geometry = View("Geomtry", FACE, READ)
         self.geometry.getAttribute("solar_radiaton_dayly")
@@ -46,36 +49,12 @@ class MonthlyHeatingAndCooling(Module):
             building = city.getComponent(uuid)
             L_heating = building.getAttribute("transmission_coefficient_heating").getDouble()
             L_cooling = building.getAttribute("transmission_coefficient_cooling").getDouble()
-            print L_heating/1000.
+
             T_heating = building.getAttribute("T_heating").getDouble()
             T_cooling = building.getAttribute("T_cooling").getDouble()  
+            V_living = building.getAttribute("V_living").getDouble()  
             solarEnergy = self.calculateSolarRadiation(city, building)
-            firstDay = datetime.strptime(dates[0], '%Y-%m-%d')
-            print firstDay.month
-            currentmonth = firstDay.month
-            heating_days = 0
-            counter = -1
-            for day in dates:
-                date = datetime.strptime(day, '%Y-%m-%d') 
-                counter += 1
-                sum_qs = 0
-                sum_qe = 0
-                sum_t = 0
-                days = 0
-                days +=1
-                qs = solarEnergy[date]
-                qe =  L_heating * (T_heating - temperatures[counter]) * 24.
-                sum_qs+= qs/1000.
-                sum_qe+= qe/1000.
-                sum_t += temperatures[counter]
-                    
-                if qs < qe:
-                    heating_days += 1                
-                           
-                if currentmonth != date.month:                                    
-                    print  str("Heating ") + str(currentmonth) + " " + str(heating_days)+" " + str(L_cooling/1000)+ " " + str(sum_t/days)+" " +str(sum_qe/days) +" " +str(sum_qs/days)
-                    currentmonth = date.month
-                    heating_days = 0
+            self.monthlyValues(building, V_living, L_heating, dates, temperatures, solarEnergy, T_heating)
 
                     
     def calculateSolarRadiation(self, city, building):
@@ -98,7 +77,73 @@ class MonthlyHeatingAndCooling(Module):
                 first = False
         #print solarRadiationTotal
         return solarRadiationTotal 
-            
+        
+    def monthlyValues(self,building, V, L, dates, temperatures, solarEnergy, T_heating):
+        firstDay = datetime.strptime(dates[0], '%Y-%m-%d')
+        lastDay = datetime.strptime(dates[len(dates)-1], '%Y-%m-%d')
+        currentmonth = firstDay.month
+        counter = -1
+        montlySolarEnergy = doublevector()   
+        montlyHeatingLoss = doublevector()
+        montlyHeatingDemand = doublevector()
+        sum_qs = 0.
+        sum_qe = 0.
+        sum_t = 0
+        days = 0  
+        sum_tot = 0.
+        for day in dates:
+            date = datetime.strptime(day, '%Y-%m-%d') 
+            counter += 1
+            days +=1
+            qs = solarEnergy[date]
+            qe =  L * (T_heating - temperatures[counter]) * 24.
+            sum_qs+= qs/1000.
+            sum_qe+= qe/1000.
+            sum_t += temperatures[counter]                                           
+            if currentmonth != date.month or date == lastDay:                                    
+                montlyHeatingLoss.append(sum_qe)
+                montlySolarEnergy.append(sum_qs)
+                etha = self.efficencyForHeatProduction(L, V, sum_qe/days, sum_qs/days) # for average month               
+                lastInsert = len(montlyHeatingLoss) -1
+                montlyHeatingDemand.append((sum_qe/days - etha*sum_qs/days)*days)
+                if montlyHeatingDemand[lastInsert] > 0:
+                    sum_tot += montlyHeatingDemand[lastInsert] 
+                print str(L) + " " + str("Heating ") + str(currentmonth) + " " + str(montlyHeatingLoss[lastInsert])+" " +str(montlySolarEnergy[lastInsert]) +" " +str(montlyHeatingDemand[lastInsert])
+                currentmonth = date.month
+                sum_qs = 0
+                sum_qe = 0
+                sum_t = 0
+                days = 0  
+
+        building.getAttribute("heating_loss_monthly").setDoubleVector(montlyHeatingLoss)     
+        building.getAttribute("solar_energy_montlhy").setDoubleVector(montlySolarEnergy)
+        building.getAttribute("heating_demand_monthly").setDoubleVector(montlyHeatingDemand)
+        building.getAttribute("anual_heating_demand").setDouble(sum_tot)
+        #return montlyHeatingLoss, montlySolarEnergy, montlyHeatingDemand
+    """ Based on ÖNORM B 8110-6:2009 Part 9.4 (page 45)
+        
+    The calculation is baed on monthly values 
+    
+    """
+    def efficencyForHeatProduction(self, L_t, V, Q_heating, Q_prod):
+        if L_t == 0:
+            return 0
+        
+        #See page 41
+        f_bw = 30. # form solid buildings
+        
+        C = f_bw * V
+        tau = C / L_t
+                
+        a_0 = 1 # for heating
+        tau_0 = 16 #for heating
+        a = a_0 + tau/tau_0
+        
+        gamma = Q_heating / Q_prod
+        
+        if gamma != 1:
+            return (1-pow(gamma,a)) / (1-pow(gamma,(a+1)))           
+        return a / (a+1)
         
     def getHelpUrl(self):        
         return "https://docs.google.com/document/pub?id=1s6rJ9mSbTrNU2ZUaF-zALxsdZ0kJZc8RywA-LVtWHgE"

@@ -18,6 +18,7 @@ private:
         bool createRays;
         bool createDayly;
         bool createHourly;
+        bool onlyWindows;
 
         void transformCooridnates(double &x, double &y);
         void directionSun(DM::Node * n, double dAzimuth, double dZenithAngle);
