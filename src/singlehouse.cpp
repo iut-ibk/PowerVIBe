@@ -11,7 +11,7 @@
 DM_DECLARE_NODE_NAME(SingleHouse, TestModules)
 SingleHouse::SingleHouse()
 {
-    houses = DM::View("BUILDING", DM::FACE, DM::WRITE);
+    houses = DM::View("BUILDING", DM::COMPONENT, DM::WRITE);
     houses.addAttribute("built_year");
     houses.addAttribute("stories");
     houses.addAttribute("stories_below"); //cellar counts as story

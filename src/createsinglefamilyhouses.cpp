@@ -7,6 +7,7 @@
 #include <dmhelper.h>
 #include <tbvectordata.h>
 #include <cutelittlegeometryhelpers.h>
+#include <omp.h>
 
 DM_DECLARE_NODE_NAME(CreateSingleFamilyHouses, BlockCity)
 
@@ -16,19 +17,14 @@ CreateSingleFamilyHouses::CreateSingleFamilyHouses()
     stories = 1;
     this->addParameter("Stories", DM::INT, &stories);
 
-
-    houses = DM::View("BUILDING", DM::COMPONENT, DM::WRITE);
-    houses.addAttribute("footprint_area");
-    parcels.addAttribute("centroid_x");
-    parcels.addAttribute("centroid_y");
-
     parcels = DM::View("PARCEL", DM::FACE, DM::READ);
     parcels.getAttribute("centroid_x");
     parcels.getAttribute("centroid_y");
-    
 
-    building_model = DM::View("Geometry", DM::FACE, DM::WRITE);
-    building_model.addAttribute("type");
+    houses = DM::View("BUILDING", DM::COMPONENT, DM::WRITE);
+    houses.addAttribute("footprint_area");
+    houses.addAttribute("centroid_x");
+    houses.addAttribute("centroid_y");
 
     houses.addAttribute("built_year");
     houses.addAttribute("stories");
@@ -54,9 +50,13 @@ CreateSingleFamilyHouses::CreateSingleFamilyHouses()
     houses.addAttribute("T_heating");
     houses.addAttribute("T_cooling");
 
+    houses.addAttribute("Geometry");
+    houses.addAttribute("V_living");
 
     footprint = DM::View("Footprint", DM::FACE, DM::WRITE);
 
+    building_model = DM::View("Geometry", DM::FACE, DM::WRITE);
+    building_model.addAttribute("type");
 
     parcels.addLinks("BUILDING", houses);
     houses.addLinks("PARCEL", parcels);
@@ -79,7 +79,7 @@ void CreateSingleFamilyHouses::run()
     std::vector<std::string> parcelUUIDs = city->getUUIDs(parcels);
 
     int nparcels = parcelUUIDs.size();
-
+    #pragma omp parallel for
     for (int i = 0; i < nparcels; i++) {
         DM::Face * parcel = city->getFace(parcelUUIDs[i]);
         std::vector<DM::Node * > nodes  = TBVectorData::getNodeListFromFace(city, parcel);
@@ -97,9 +97,7 @@ void CreateSingleFamilyHouses::run()
         QPointF f2 (centroid.getX() + l/2, centroid.getY() - b/2);
         QPointF f3 (centroid.getX() + l/2, centroid.getY() + b/2);
         QPointF f4 (centroid.getX() - l/2, centroid.getY() + b/2);
-        
-        double cnetroid_x = centroid.getX() ;
-        double cnetroid_y = centroid.getY() ;
+
         QPolygonF original = QPolygonF() << f1 << f2 << f3 << f4;
         QTransform transform = QTransform().rotate(angle);
         QPolygonF rotated = transform.map(original);
@@ -116,7 +114,7 @@ void CreateSingleFamilyHouses::run()
         }
         houseNodes.push_back(houseNodes[0]);
 
-        DM::Component * building = city->addComponent(new DM::Component(), houses);
+        DM::Component * building = city->addComponent(new Component(), houses);
 
 
         //Create Building and Footprints
@@ -149,6 +147,9 @@ void CreateSingleFamilyHouses::run()
         building->addAttribute("T_heating", 20);
         building->addAttribute("T_cooling", 26);
 
+
+        building->addAttribute("V_living", l*b*stories * 3);
+
         CuteLittleGeometryHelpers::CreateStandardBuilding(city, houses, building_model, building, houseNodes, stories);
 
         //Create Links
@@ -156,4 +157,5 @@ void CreateSingleFamilyHouses::run()
         parcel->getAttribute("BUILDING")->setLink(houses.getName(), building->getUUID());
         
     }
+    Logger(Debug) << "Created Houses " << nparcels;
 }

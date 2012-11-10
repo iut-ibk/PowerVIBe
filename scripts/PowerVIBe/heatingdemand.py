@@ -1,6 +1,30 @@
 #!/usr/bin/python
 # -*- coding: utf8 -*-
 
+"""
+@file
+@author  Chrisitan Urich <christian.urich@gmail.com>
+@version 1.0
+@section LICENSE
+
+This file is part of PowerVIBe
+Copyright (C) 2012  Christian Urich
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+"""
+
 from pydynamind import *
 from pydmtoolbox import *
 import pydmtoolbox
@@ -21,6 +45,8 @@ class MonthlyHeatingAndCooling(Module):
         self.buildings.addAttribute("solar_energy_montlhy")
         self.buildings.addAttribute("heating_demand_monthly")
         self.buildings.addAttribute("anual_heating_demand")
+        self.buildings.addAttribute("monthly_peak_heating_demand")
+        self.buildings.addAttribute("dayly_peak_heating_demand")        
         
         self.geometry = View("Geomtry", FACE, READ)
         self.geometry.getAttribute("solar_radiaton_dayly")
@@ -75,51 +101,78 @@ class MonthlyHeatingAndCooling(Module):
                     else:
                         solarRadiationTotal[date] = solarRadiationTotal[date]  + solarRadiation[i] * area
                 first = False
-        #print solarRadiationTotal
+
         return solarRadiationTotal 
         
     def monthlyValues(self,building, V, L, dates, temperatures, solarEnergy, T_heating):
         firstDay = datetime.strptime(dates[0], '%Y-%m-%d')
         lastDay = datetime.strptime(dates[len(dates)-1], '%Y-%m-%d')
         currentmonth = firstDay.month
+        
         counter = -1
-        montlySolarEnergy = doublevector()   
-        montlyHeatingLoss = doublevector()
-        montlyHeatingDemand = doublevector()
+        monthlySolarEnergy = doublevector()   
+        monthlyHeatingLoss = doublevector()
+        monthlyHeatingDemand = doublevector()
+        monthlyDates = stringvector()
         sum_qs = 0.
         sum_qe = 0.
         sum_t = 0
         days = 0  
         sum_tot = 0.
+        sum_sun_tot = 0.
+        max_daily_peak = 0.
+        monthly_peak = 0.
+        max_monthly_peak = 0.
+        
         for day in dates:
             date = datetime.strptime(day, '%Y-%m-%d') 
             counter += 1
             days +=1
             qs = solarEnergy[date]
-            qe =  L * (T_heating - temperatures[counter]) * 24.
-            sum_qs+= qs/1000.
-            sum_qe+= qe/1000.
+                      
+            daily_peak =  L * (T_heating - temperatures[counter])
+            qe = daily_peak * 24.
+            
+            if daily_peak > max_daily_peak:
+                max_daily_peak = daily_peak
+                
+            if daily_peak > 0:
+                monthly_peak+=daily_peak
+                
+            sum_qs+= qs
+            sum_qe+= qe
+            
             sum_t += temperatures[counter]                                           
-            if currentmonth != date.month or date == lastDay:                                    
-                montlyHeatingLoss.append(sum_qe)
-                montlySolarEnergy.append(sum_qs)
+            if currentmonth != date.month or date == lastDay: 
+                monthlyDates.append(datetime(date.year, currentmonth, 15).strftime('%Y-%m-%d'))                          
+                monthlyHeatingLoss.append(sum_qe)
+                monthlySolarEnergy.append(sum_qs)
                 etha = self.efficencyForHeatProduction(L, V, sum_qe/days, sum_qs/days) # for average month               
-                lastInsert = len(montlyHeatingLoss) -1
-                montlyHeatingDemand.append((sum_qe/days - etha*sum_qs/days)*days)
-                if montlyHeatingDemand[lastInsert] > 0:
-                    sum_tot += montlyHeatingDemand[lastInsert] 
-                print str(L) + " " + str("Heating ") + str(currentmonth) + " " + str(montlyHeatingLoss[lastInsert])+" " +str(montlySolarEnergy[lastInsert]) +" " +str(montlyHeatingDemand[lastInsert])
+                lastInsert = len(monthlyHeatingLoss) -1
+                monthlyHeatingDemand.append((sum_qe/days - etha*sum_qs/days)*days)
+                sum_sun_tot += sum_qs
+                if monthlyHeatingDemand[lastInsert] > 0:
+                    sum_tot += monthlyHeatingDemand[lastInsert]
+                print str(L) + " " + str("Heating ") + str(currentmonth) + " " + str(monthlyHeatingLoss[lastInsert])+" " +str(monthlySolarEnergy[lastInsert]) +" " +str(monthlyHeatingDemand[lastInsert])
+                
+                if monthly_peak > max_monthly_peak/days:
+                    max_monthly_peak = monthly_peak/days
                 currentmonth = date.month
                 sum_qs = 0
                 sum_qe = 0
                 sum_t = 0
                 days = 0  
-
-        building.getAttribute("heating_loss_monthly").setDoubleVector(montlyHeatingLoss)     
-        building.getAttribute("solar_energy_montlhy").setDoubleVector(montlySolarEnergy)
-        building.getAttribute("heating_demand_monthly").setDoubleVector(montlyHeatingDemand)
+                monthly_peak = 0
+        #print  sum_sun_tot
+        
+        building.getAttribute("heating_loss_monthly").addTimeSeries(monthlyDates, monthlyHeatingLoss)     
+        building.getAttribute("solar_energy_montlhy").addTimeSeries(monthlyDates, monthlySolarEnergy)
+        building.getAttribute("heating_demand_monthly").addTimeSeries(monthlyDates, monthlyHeatingDemand)
         building.getAttribute("anual_heating_demand").setDouble(sum_tot)
-        #return montlyHeatingLoss, montlySolarEnergy, montlyHeatingDemand
+        building.getAttribute("monthly_peak_heating_demand").setDouble(max_monthly_peak)
+        building.getAttribute("dayly_peak_heating_demand").setDouble(max_daily_peak)        
+        
+        
     """ Based on ÖNORM B 8110-6:2009 Part 9.4 (page 45)
         
     The calculation is baed on monthly values 

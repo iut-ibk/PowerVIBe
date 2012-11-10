@@ -229,8 +229,8 @@ void CreateShadows::caclulateSunPositions(const QDate &start, const QDate &end, 
 
 void CreateShadows::run()
 {
-    ofstream myfile;
-    myfile.open ("ress.txt");
+    //ofstream myfile;
+    //myfile.open ("ress.txt");
 
     DM::System * city = this->getData("city");
 
@@ -282,6 +282,7 @@ void CreateShadows::run()
 
 
     int TODO = nuuids;
+    #pragma omp parallel for
     for (int i = 0; i < nuuids; i++){
         //CreateInitalSolarRadiationVector
         std::vector<double> solarRadiation(numberOfDays, 0);
@@ -290,7 +291,7 @@ void CreateShadows::run()
         //DM::Logger(DM::Debug) << "Face " << uuid;
         //Create Face Point
         DM::Face * f = city->getFace(uuid);
-        myfile << uuid << "\t" << f->getAttribute("type")->getString() << "\n";
+        //myfile << uuid << "\t" << f->getAttribute("type")->getString() << "\n";
         if (f->getAttribute("type")->getString() != "window")
             continue;
         std::vector<DM::Node*> nodes = TBVectorData::getNodeListFromFace(city, f);
@@ -313,7 +314,7 @@ void CreateShadows::run()
         date = startDate;
         int numberofCheckedIntersections = 0;
         int numberOfCenters = centers.size();
-        //#pragma omp parallel for
+
         for (int c = 0; c < numberOfCenters; c++) {
             DM::Node * n1 =  city->addNode(centers[c], sunnodes);
             f->getAttribute("SunRays")->setLink("SunRays", n1->getUUID());
@@ -391,8 +392,8 @@ void CreateShadows::run()
         f->getAttribute("solar_hourss_dayly")->addTimeSeries(day_dates, solarHours);
 
 
-        for (int i = 0; i < solarRadiation.size(); i++)
-            myfile << day_dates[i] << "\t" << solarHours[i]<< "\t" << solarRadiation[i] <<"\n";
+        //for (int i = 0; i < solarRadiation.size(); i++)
+            //myfile << day_dates[i] << "\t" << solarHours[i]<< "\t" << solarRadiation[i] <<"\n";
 
     }
 

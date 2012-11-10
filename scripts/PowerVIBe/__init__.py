@@ -27,3 +27,4 @@ from heatingdemand import *
 from climatemodel import *
 from heatingcoolingtransmission import *
 from exportkml import *
+from groundsourceheatpumps import *
