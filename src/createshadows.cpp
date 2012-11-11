@@ -282,7 +282,8 @@ void CreateShadows::run()
 
 
     int TODO = nuuids;
-    #pragma omp parallel for
+
+    //#pragma omp parallel for
     for (int i = 0; i < nuuids; i++){
         //CreateInitalSolarRadiationVector
         std::vector<double> solarRadiation(numberOfDays, 0);

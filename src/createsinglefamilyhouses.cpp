@@ -79,15 +79,15 @@ void CreateSingleFamilyHouses::run()
     std::vector<std::string> parcelUUIDs = city->getUUIDs(parcels);
 
     int nparcels = parcelUUIDs.size();
-    #pragma omp parallel for
+    //#pragma omp parallel for
     for (int i = 0; i < nparcels; i++) {
         DM::Face * parcel = city->getFace(parcelUUIDs[i]);
         std::vector<DM::Node * > nodes  = TBVectorData::getNodeListFromFace(city, parcel);
         
         std::vector<DM::Node> bB;
         //Calcualte bounding minial bounding box
-        
-        double angle = CGALGeometry::CalculateMinBoundingBox(nodes, bB);
+        std::vector<double> size;
+        double angle = CGALGeometry::CalculateMinBoundingBox(nodes, bB,size);
         Node centroid = DM::Node(parcel->getAttribute("centroid_x")->getDouble(),  parcel->getAttribute("centroid_y")->getDouble(), 0);
         
         double l = 16;

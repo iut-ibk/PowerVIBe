@@ -24,9 +24,11 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 """
 
-from pydynamind import *
+
 from pydmtoolbox import *
 import pydmextensions
+from pydynamind import *
+
 from collada import *
 import matplotlib.delaunay as triang
 import numpy as np

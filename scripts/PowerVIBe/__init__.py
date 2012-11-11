@@ -28,3 +28,4 @@ from climatemodel import *
 from heatingcoolingtransmission import *
 from exportkml import *
 from groundsourceheatpumps import *
+from testcomponent import *
