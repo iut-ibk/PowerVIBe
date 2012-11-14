@@ -14,8 +14,23 @@ DM_DECLARE_NODE_NAME(CreateSingleFamilyHouses, BlockCity)
 CreateSingleFamilyHouses::CreateSingleFamilyHouses()
 {
 
-    stories = 1;
-    this->addParameter("Stories", DM::INT, &stories);
+    heatingT = 20;
+    coolingT = 20;
+    buildyear = 1985;
+    stories = 2;
+    l = 16;
+    b = 10;
+    alpha = 30;
+
+    this->addParameter("l", DM::DOUBLE, &l);
+    this->addParameter("b", DM::DOUBLE, &b);
+    this->addParameter("stories", DM::INT, &stories);
+    this->addParameter("alhpa", DM::DOUBLE, &alpha);
+    this->addParameter("built_year", DM::INT, &buildyear);
+
+    this->addParameter("T_heating", DM::DOUBLE, &heatingT);
+    this->addParameter("T_cooling", DM::DOUBLE, &coolingT);
+
 
     parcels = DM::View("PARCEL", DM::FACE, DM::READ);
     parcels.getAttribute("centroid_x");
@@ -90,8 +105,8 @@ void CreateSingleFamilyHouses::run()
         double angle = CGALGeometry::CalculateMinBoundingBox(nodes, bB,size);
         Node centroid = DM::Node(parcel->getAttribute("centroid_x")->getDouble(),  parcel->getAttribute("centroid_y")->getDouble(), 0);
         
-        double l = 16;
-        double b = 10;
+        l = 16;
+        b = 10;
 
         QPointF f1 (centroid.getX() - l/2, centroid.getY() - b/2);
         QPointF f2 (centroid.getX() + l/2, centroid.getY() - b/2);
@@ -99,7 +114,7 @@ void CreateSingleFamilyHouses::run()
         QPointF f4 (centroid.getX() - l/2, centroid.getY() + b/2);
 
         QPolygonF original = QPolygonF() << f1 << f2 << f3 << f4;
-        QTransform transform = QTransform().rotate(angle);
+        QTransform transform = QTransform().rotate(0);
         QPolygonF rotated = transform.map(original);
         
         std::vector<DM::Node * > houseNodes;
@@ -122,7 +137,7 @@ void CreateSingleFamilyHouses::run()
 
         Node  n = TBVectorData::CaclulateCentroid(city, foot_print);
         building->addAttribute("type", "single_family_house");
-        building->addAttribute("built_year", 1980);
+        building->addAttribute("built_year", buildyear);
         building->addAttribute("stories", stories);
         building->addAttribute("stories_below", 0); //cellar counts as story
         building->addAttribute("stories_height",3 );
@@ -139,18 +154,21 @@ void CreateSingleFamilyHouses::run()
 
         building->addAttribute("alpha_bounding", angle);
 
-        building->addAttribute("alpha_roof", 0);
+        building->addAttribute("alpha_roof", alpha);
 
         building->addAttribute("cellar_used", 1);
         building->addAttribute("roof_used", 0);
 
-        building->addAttribute("T_heating", 20);
-        building->addAttribute("T_cooling", 26);
+        building->addAttribute("T_heating", heatingT);
+        building->addAttribute("T_cooling", coolingT);
 
 
         building->addAttribute("V_living", l*b*stories * 3);
 
         LittleGeometryHelpers::CreateStandardBuilding(city, houses, building_model, building, houseNodes, stories);
+        if (alpha > 10) {
+            LittleGeometryHelpers::CreateRoofRectangle(city, houses, building_model, building, houseNodes, stories*3, alpha);
+        }
 
         //Create Links
         building->getAttribute("PARCEL")->setLink(parcels.getName(), parcel->getUUID());

@@ -13,7 +13,15 @@ private:
     DM::View parcels;
     DM::View building_model;
     DM::View footprint;
+
+    double heatingT;
+    double coolingT;
+    int buildyear;
     int stories;
+    double alpha;
+    double l;
+    double b;
+
     void createWindows(DM::Face * f, double distance, double width, double height);
 public:
     CreateSingleFamilyHouses();

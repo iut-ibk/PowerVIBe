@@ -50,6 +50,7 @@ CreateShadows::CreateShadows()
     models.addAttribute("solar_hours_dayly");
     models.addLinks("SunRays", sunrays);
 
+    dem = DM::View("SUPERBLOCK", DM::FACE, DM::READ);
 
     sunrays = DM::View("SunRays", DM::EDGE, DM::WRITE);
 
@@ -57,11 +58,16 @@ CreateShadows::CreateShadows()
     sunnodes.addAttribute("sunrays");
 
     onlyWindows = false;
+    gridSize = 1;
+
+    this->addParameter("GridSize", DM::DOUBLE, &gridSize);
 
     std::vector<DM::View> data;
     data.push_back(buildings);
     data.push_back(models);
     data.push_back(sunrays);
+    data.push_back(sunnodes);
+    data.push_back(dem);
 
     createRays = false;
     this->addParameter("CreateRays", DM::BOOL, &createRays);
@@ -159,19 +165,48 @@ std::vector<DM::Node> CreateShadows::createRaster(DM::System *sys, DM::Face *f)
     double blockHeight = maxY - minY;
 
 
-    //Create Parcels
+    //Create Raster
 
-    unsigned int elements_x = blockWidth/2 + 1;
-    unsigned int elements_y = blockHeight/2 + 1;
+    unsigned int elements_x = blockWidth/gridSize + 1;
+    unsigned int elements_y = blockHeight/gridSize + 1;
     double realwidth = blockWidth / elements_x;
     double realheight = blockHeight / elements_y;
 
+    QPolygonF h1;
+    for (unsigned int i = 0; i < ns_t.size()-1; i++){
+        DM::Node * n1 = ns_t[i];
+        h1.push_back(QPointF(n1->getX(), n1->getY()));
+    }
 
+    std::vector<QPolygonF> holes;
+    foreach (std::vector<std::string> hole, f->getHoles()) {
+        QPolygonF h;
+        for (unsigned int i = 0; i < hole.size(); i++) {
+            DM::Node n = *(sys->getNode(hole[i]));
+            DM::Node n_t =  TBVectorData::RotateVector(alphas, n);
+            h.push_back(QPointF(n_t.getX(), n_t.getY()));
+        }
+        holes.push_back(h);
+    }
 
     for (unsigned int x = 0; x < elements_x; x++) {
         for (unsigned int y = 0; y < elements_y; y++) {
             double x_p = minX + ((double)x+0.5) * realwidth;
             double y_p = minY + ((double)y+0.5) * realheight;
+            //Cehck if Point is valid
+            QPointF p(x_p, y_p);
+
+            if (!h1.containsPoint(p, Qt::WindingFill))
+                continue;
+            bool isInHole = false;
+            foreach (QPolygonF h1, holes) {
+                if (h1.containsPoint(p, Qt::WindingFill)) {
+                    isInHole = true;
+                    break;
+                }
+            }
+            if (isInHole)
+                continue;
             returnNodes_t.push_back(DM::Node(x_p,y_p, const_height));
         }
     }
@@ -236,6 +271,13 @@ void CreateShadows::run()
 
     std::vector<std::string> model_uuids =  city->getUUIDs(models);
 
+    //Add Digital Elevation May
+    std::vector<std::string> elevation_uuids = city->getUUIDs(dem);
+
+    foreach (std::string uuid, elevation_uuids) {
+        model_uuids.push_back(uuid);
+    }
+
     //Init Triangles
     std::list<Triangle> triangles;
     foreach (std::string uuid, model_uuids) {
@@ -255,7 +297,7 @@ void CreateShadows::run()
 
     tree.build();
     QDate startDate(2012, 1,1);
-    QDate endDate(2013, 1,1);
+    QDate endDate(2012, 1,2);
     QDate date = startDate;
     int numberOfDays = startDate.daysTo(endDate);
     std::vector<std::string> day_dates;
@@ -283,7 +325,7 @@ void CreateShadows::run()
 
     int TODO = nuuids;
 
-    //#pragma omp parallel for
+
     for (int i = 0; i < nuuids; i++){
         //CreateInitalSolarRadiationVector
         std::vector<double> solarRadiation(numberOfDays, 0);
@@ -293,8 +335,8 @@ void CreateShadows::run()
         //Create Face Point
         DM::Face * f = city->getFace(uuid);
         //myfile << uuid << "\t" << f->getAttribute("type")->getString() << "\n";
-        if (f->getAttribute("type")->getString() != "window")
-            continue;
+        //if (f->getAttribute("type")->getString() != "window")
+            //continue;
         std::vector<DM::Node*> nodes = TBVectorData::getNodeListFromFace(city, f);
         DM::Node dN1 = *(nodes[1]) - *(nodes[0]);
         DM::Node dN2 = *(nodes[2]) - *(nodes[0]);
@@ -315,7 +357,7 @@ void CreateShadows::run()
         date = startDate;
         int numberofCheckedIntersections = 0;
         int numberOfCenters = centers.size();
-
+        //#pragma omp parallel for
         for (int c = 0; c < numberOfCenters; c++) {
             DM::Node * n1 =  city->addNode(centers[c], sunnodes);
             f->getAttribute("SunRays")->setLink("SunRays", n1->getUUID());
@@ -394,7 +436,7 @@ void CreateShadows::run()
 
 
         //for (int i = 0; i < solarRadiation.size(); i++)
-            //myfile << day_dates[i] << "\t" << solarHours[i]<< "\t" << solarRadiation[i] <<"\n";
+        //myfile << day_dates[i] << "\t" << solarHours[i]<< "\t" << solarRadiation[i] <<"\n";
 
     }
 

@@ -15,10 +15,14 @@ private:
         DM::View sunrays;
         DM::View sunnodes;
 
+        DM::View dem;
+
         bool createRays;
         bool createDayly;
         bool createHourly;
         bool onlyWindows;
+
+        double gridSize;
 
         void transformCooridnates(double &x, double &y);
         void directionSun(DM::Node * n, double dAzimuth, double dZenithAngle);

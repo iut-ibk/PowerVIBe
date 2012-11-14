@@ -118,9 +118,9 @@ void ModernBuilding::run()
     roofColor.push_back(0.66);
     roofColor.push_back(0.66);
     std::vector<double> wallColor;
-    wallColor.push_back(0.96);
-    wallColor.push_back(0.96);
-    wallColor.push_back(0.86);
+    wallColor.push_back(196./255.);
+    wallColor.push_back(196./255.);
+    wallColor.push_back(196./255.);
     std::vector<double> windowColor;
     windowColor.push_back(0.53);
     windowColor.push_back(0.81);
