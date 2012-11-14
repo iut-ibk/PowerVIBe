@@ -6,7 +6,7 @@
 #include <QTransform>
 #include <dmhelper.h>
 #include <tbvectordata.h>
-#include <cutelittlegeometryhelpers.h>
+#include <littlegeometryhelpers.h>
 #include <omp.h>
 
 DM_DECLARE_NODE_NAME(CreateSingleFamilyHouses, BlockCity)
@@ -150,7 +150,7 @@ void CreateSingleFamilyHouses::run()
 
         building->addAttribute("V_living", l*b*stories * 3);
 
-        CuteLittleGeometryHelpers::CreateStandardBuilding(city, houses, building_model, building, houseNodes, stories);
+        LittleGeometryHelpers::CreateStandardBuilding(city, houses, building_model, building, houseNodes, stories);
 
         //Create Links
         building->getAttribute("PARCEL")->setLink(parcels.getName(), parcel->getUUID());

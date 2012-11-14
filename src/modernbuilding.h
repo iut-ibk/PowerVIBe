@@ -24,32 +24,38 @@
  *
  */
 
-#ifndef SINGLEHOUSE_H
-#define SINGLEHOUSE_H
+
+#ifndef MODERNBUILDING_H
+#define MODERNBUILDING_H
 
 #include <dm.h>
 using namespace DM;
 
-class DM_HELPER_DLL_EXPORT SingleHouse : public Module
+class DM_HELPER_DLL_EXPORT ModernBuilding: public Module
 {
-    DM_DECLARE_NODE(SingleHouse)
-private:
-        DM::View houses;
-        DM::View footprint;
-        DM::View building_model;
+     DM_DECLARE_NODE(ModernBuilding)
+     private:
+             DM::View buildings;
+             DM::View geometry;
+             DM::View footprints;
+             double heatingT;
+             double coolingT;
+             int buildyear;
+             int stories;
+             double alpha;
+             double l;
+             double b;
 
-        double heatingT;
-        double coolingT;
-        int buildyear;
-        int stories;
-        double alpha;
-        double l;
-        double b;
+             double overhang;
+             double parapet;
+             double w_height;
+             double w_width;
+             double w_distance;
 
 
 public:
-    SingleHouse();
+    ModernBuilding();
     void run();
 };
 
-#endif // SINGLEHOUSE_H
+#endif // MODERNBUILDING_H

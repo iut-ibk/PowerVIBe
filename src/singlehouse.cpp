@@ -1,3 +1,29 @@
+/**
+ * @file
+ * @author  Chrisitan Urich <christian.urich@gmail.com>
+ * @version 1.0
+ * @section LICENSE
+ *
+ * This file is part of DynaMind
+ *
+ * Copyright (C) 2011-2012   Christian Urich
+
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ */
+
 #include "singlehouse.h"
 #include "dmgeometry.h"
 #include "cgalgeometry.h"
@@ -6,7 +32,7 @@
 #include <QTransform>
 #include <dmhelper.h>
 #include <tbvectordata.h>
-#include <cutelittlegeometryhelpers.h>
+#include <littlegeometryhelpers.h>
 
 DM_DECLARE_NODE_NAME(SingleHouse, TestModules)
 SingleHouse::SingleHouse()
@@ -19,6 +45,9 @@ SingleHouse::SingleHouse()
 
     houses.addAttribute("floor_area");
     houses.addAttribute("gross_floor_area");
+
+    houses.addAttribute("area_walls_outside");
+    houses.addAttribute("area_windows");
 
     houses.addAttribute("centroid_x");
     houses.addAttribute("centroid_y");
@@ -49,13 +78,24 @@ SingleHouse::SingleHouse()
     data.push_back(houses);
     data.push_back(footprint);
     data.push_back(building_model);
-    heatingT = 21;
+    heatingT = 20;
     buildyear = 1985;
     stories = 1;
-    this->addParameter("HeatingT", DM::DOUBLE, &heatingT);
-    this->addParameter("buildyear", DM::INT, &buildyear);
+    l = 16;
+    b = 10;
+    alpha = 30;
+
+    this->addParameter("l", DM::DOUBLE, &l);
+    this->addParameter("b", DM::DOUBLE, &b);
     this->addParameter("stories", DM::INT, &stories);
+    this->addParameter("alhpa", DM::DOUBLE, &alpha);
+    this->addParameter("built_year", DM::INT, &buildyear);
+
+    this->addParameter("T_heating", DM::DOUBLE, &heatingT);
+    this->addParameter("T_cooling", DM::DOUBLE, &heatingT);
     this->addData("city", data);
+
+
 
 
 }
@@ -65,8 +105,7 @@ void SingleHouse::run()
 
     DM::System * city = this->getData("city");
 
-    double l = 16;
-    double b = 10;
+
     QPointF f1 ( -l/2,  - b/2);
     QPointF f2 (l/2, -b/2);
     QPointF f3 (l/2,  b/2);
@@ -106,7 +145,7 @@ void SingleHouse::run()
     building->addAttribute("stories_height",3 );
 
     building->addAttribute("floor_area", l*b);
-    building->addAttribute("gross_floor_area", l * b * stories * 3);
+    building->addAttribute("gross_floor_area", l * b * stories);
 
     building->addAttribute("centroid_x", n.getX());
     building->addAttribute("centroid_y", n.getY());
@@ -128,9 +167,28 @@ void SingleHouse::run()
 
     building->addAttribute("V_living", l*b*stories * 3);
 
-    CuteLittleGeometryHelpers::CreateStandardBuilding(city, houses, building_model, building, houseNodes, stories);
+    LittleGeometryHelpers::CreateStandardBuilding(city, houses, building_model, building, houseNodes, stories);
+    if (alpha > 10) {
+        LittleGeometryHelpers::CreateRoofRectangle(city, houses, building_model, building, houseNodes, stories*3, alpha);
+    }
 
+    std::vector<DM::LinkAttribute> links = building->getAttribute("Geometry")->getLinks();
 
+    double windows_a = 0;
+    double wall_outside_a = 0;
+    foreach (LinkAttribute la, links) {
+        DM::Face * f = city->getFace(la.uuid);
+        double area = TBVectorData::CalculateArea(city, f);
+        if (f->getAttribute("type")->getString() == "window") {
+            windows_a+=area;
+        }
+        if (f->getAttribute("type")->getString()== "wall_outside") {
+            wall_outside_a+=area;
+        }
+    }
+
+    building->addAttribute("area_walls_outside", wall_outside_a);
+    building->addAttribute("area_windows", windows_a);
 
 
 }
