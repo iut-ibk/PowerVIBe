@@ -78,6 +78,7 @@ SingleHouse::SingleHouse()
     data.push_back(houses);
     data.push_back(footprint);
     data.push_back(building_model);
+    data.push_back(DM::View("dummy", DM::SUBSYSTEM, READ));
     heatingT = 20;
     buildyear = 1985;
     stories = 1;

@@ -56,6 +56,9 @@ CreateShadows::CreateShadows()
 
     sunnodes = DM::View("SunNodes", DM::NODE, DM::WRITE);
     sunnodes.addAttribute("sunrays");
+    sunnodes.addAttribute("sunhours");
+
+    mesh = DM::View("Mesh", DM::FACE, DM::WRITE);
 
     onlyWindows = false;
     gridSize = 1;
@@ -68,10 +71,26 @@ CreateShadows::CreateShadows()
     data.push_back(sunrays);
     data.push_back(sunnodes);
     data.push_back(dem);
+    data.push_back(mesh);
 
     createRays = false;
     this->addParameter("CreateRays", DM::BOOL, &createRays);
     this->addParameter("Only Windows", DM::BOOL, &onlyWindows);
+
+    startday = 1;
+    startmonth = 1;
+    startyear = 2012;
+
+    endday = 1;
+    endmonth = 2;
+    endyear = 2012;
+
+    this->addParameter("startday", DM::INT, &startday);
+    this->addParameter("startmonth", DM::INT, &startmonth);
+    this->addParameter("startyear", DM::INT, &startyear);
+    this->addParameter("endday", DM::INT, &endday);
+    this->addParameter("endmonth", DM::INT, &endmonth);
+    this->addParameter("endyear", DM::INT, &endyear);
 
     this->addData("city", data);
 
@@ -269,8 +288,9 @@ void CreateShadows::run()
 
     DM::System * city = this->getData("city");
 
-    std::vector<std::string> model_uuids =  city->getUUIDs(models);
+    std::vector<std::string> model_uuids;
 
+    std::vector<std::string> geom_uuids =  city->getUUIDs(models);
     //Add Digital Elevation May
     std::vector<std::string> elevation_uuids = city->getUUIDs(dem);
 
@@ -278,9 +298,20 @@ void CreateShadows::run()
         model_uuids.push_back(uuid);
     }
 
+    //Add Digital Elevation May
+    std::vector<std::string> building_uuids = city->getUUIDs(buildings);
+
+    foreach (std::string uuid, building_uuids) {
+        DM::Component * cmp = city->getComponent(uuid);
+        std::vector<DM::LinkAttribute> links = cmp->getAttribute("Geometry")->getLinks();
+        foreach (DM::LinkAttribute link, links) {
+            model_uuids.push_back(link.uuid);
+        }
+    }
+
     //Init Triangles
     std::list<Triangle> triangles;
-    foreach (std::string uuid, model_uuids) {
+    foreach (std::string uuid, geom_uuids) {
         DM::Face * f = city->getFace(uuid);
         std::vector<DM::Node> tri = DM::CGALGeometry::FaceTriangulation(city, f);
         for(unsigned int i = 0; i < tri.size(); i +=3){
@@ -296,8 +327,8 @@ void CreateShadows::run()
 
 
     tree.build();
-    QDate startDate(2012, 1,1);
-    QDate endDate(2012, 1,2);
+    QDate startDate(startyear, startmonth,startday);
+    QDate endDate(endyear, endmonth,endday);
     QDate date = startDate;
     int numberOfDays = startDate.daysTo(endDate);
     std::vector<std::string> day_dates;
@@ -335,14 +366,14 @@ void CreateShadows::run()
         //Create Face Point
         DM::Face * f = city->getFace(uuid);
         //myfile << uuid << "\t" << f->getAttribute("type")->getString() << "\n";
-        //if (f->getAttribute("type")->getString() != "window")
-            //continue;
+        if (f->getAttribute("type")->getString() != "window" && this->onlyWindows)
+            continue;
         std::vector<DM::Node*> nodes = TBVectorData::getNodeListFromFace(city, f);
         DM::Node dN1 = *(nodes[1]) - *(nodes[0]);
         DM::Node dN2 = *(nodes[2]) - *(nodes[0]);
         DM::Node dir = TBVectorData::NormalVector(dN1, dN2);
-        std::vector<DM::Node> centers = this->createRaster(city, f);
-
+        //std::vector<DM::Node> centers = this->createRaster(city, f);
+        std::vector<DM::Node> centers = DM::CGALGeometry::RegularFaceTriangulation(city, f, gridSize);
         //Angle Between Vectors since face is planar the it stays the same for all positions
         std::vector<double> directions(numberOfDays*24,0);
         std::vector<double> beamradiation(numberOfDays*24,0);
@@ -357,9 +388,28 @@ void CreateShadows::run()
         date = startDate;
         int numberofCheckedIntersections = 0;
         int numberOfCenters = centers.size();
+        //Create Mesh
+        std::vector<DM::Node*> nodesToCheck(numberOfCenters);
+        for (int c = 0; c < numberOfCenters/3; c++) {
+            std::vector<DM::Node*> tnodes;
+            for (int j = 0; j < 3; j++) {
+                DM::Node * n = city->addNode(centers[c*3+j], sunnodes);
+                tnodes.push_back(n);
+                nodesToCheck[c*3+j] = n;
+            }
+            tnodes.push_back(tnodes[0]);
+            city->addFace(tnodes, this->mesh);
+        }
+
+        int newnumberOfCenters = nodesToCheck.size();
+        newnumberOfCenters++;
         //#pragma omp parallel for
         for (int c = 0; c < numberOfCenters; c++) {
-            DM::Node * n1 =  city->addNode(centers[c], sunnodes);
+            DM::Node * n1 =  nodesToCheck[c];
+            n1->addAttribute("sunHoursNode", 0);
+            std::vector<double> color(3);
+            color[2] = 1;
+            n1->getAttribute("color")->setDoubleVector(color);
             f->getAttribute("SunRays")->setLink("SunRays", n1->getUUID());
 
             std::vector<std::string> dates;
@@ -372,14 +422,15 @@ void CreateShadows::run()
 
             do {
                 dayInSimulation++;
+                int sunHoursNode = 0;
                 for (int h = 0; h < 24; h++) {
+
                     hoursInSimulation++;
                     if (!sunPos[hoursInSimulation])
                         continue;
 
                     double w = directions[hoursInSimulation];
 
-                    //DM::Logger(DM::Debug) << h << " " << sunPos[hoursInSimulation]->getZ() << " " << w <<" " << 90 -sunLocs[hoursInSimulation]->dZenithAngle;
                     //No direct sun
                     if (w  > 90 && w < 270)
                         continue;
@@ -405,9 +456,28 @@ void CreateShadows::run()
                     double radiation = beamradiation[hoursInSimulation];
                     solarRadiation[dayInSimulation] = solarRadiation[dayInSimulation] + radiation/(double) centers.size();
                     solarHours[dayInSimulation] = solarHours[dayInSimulation] + 1/(double) centers.size();
-                    if (!createRays)
+                    sunHoursNode++;
+                    n1->addAttribute("sunhours", sunHoursNode);
+                    if (sunHoursNode <= 16) {
+                        color[0] = sunHoursNode/(16.);
+                        color[1] = 1- sunHoursNode/(16.);
+                        color[2] = 0;
+                    }
+                    if (sunHoursNode <= 16/2) {
+                        color[0] = 2*sunHoursNode/(16.);
+                        color[1] = 1;
+                        color[2] = 0;
+                    }
+                    if (sunHoursNode <= 16/4) {
+                        color[1] = 4*sunHoursNode/(16.);
+                        color[2] = 1. - (sunHoursNode  * 4)/16.;
+                    }
+                    color[0] = sunHoursNode/(16.);
+                    color[2] = 1. - sunHoursNode/16.;
+                    n1->getAttribute("color")->setDoubleVector(color);
+                    if (!createRays )
                         continue;
-                    DM::Node * n2 = city->addNode(*n1+*(sunPos[hoursInSimulation]));
+                    DM::Node * n2 = city->addNode(*n1+*(sunPos[hoursInSimulation])*gridSize/2.);
                     DM::Edge * e = city->addEdge(n1, n2, this->sunrays);
                     std::stringstream datestring;
                     datestring << date.toString("yyyy-MM-dd").toStdString();

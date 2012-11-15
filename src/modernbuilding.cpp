@@ -75,6 +75,7 @@ ModernBuilding::ModernBuilding()
     data.push_back(buildings);
     data.push_back(geometry);
     data.push_back(footprints);
+    data.push_back(DM::View("dummy", DM::SUBSYSTEM, DM::MODIFY));
 
     heatingT    = 20;
     coolingT    = 26;
@@ -216,6 +217,7 @@ void ModernBuilding::run()
                 //Create Windows every 5m with = 1.5m height = 1.0m
                 std::vector<DM::Face* > windows = LittleGeometryHelpers::CreateHolesInAWall(city, f, w_distance, w_width, w_height, parapet);
                 foreach (DM::Face * w, windows) {
+                    city->addComponentToView(w, this->geometry);
                     w->addAttribute("type", "window");
                     w->getAttribute("color")->setDoubleVector(windowColor);
                     building->getAttribute("Geometry")->setLink("Geometry", w->getUUID());

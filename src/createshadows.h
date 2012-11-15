@@ -14,6 +14,7 @@ private:
         DM::View models;
         DM::View sunrays;
         DM::View sunnodes;
+        DM::View mesh;
 
         DM::View dem;
 
@@ -21,6 +22,14 @@ private:
         bool createDayly;
         bool createHourly;
         bool onlyWindows;
+
+        int startday;
+        int startmonth;
+        int startyear;
+
+        int endday;
+        int endmonth;
+        int endyear;
 
         double gridSize;
 
