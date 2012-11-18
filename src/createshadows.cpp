@@ -37,6 +37,7 @@ typedef CGAL::AABB_tree<AABB_triangle_traits> Tree;
 
 
 
+
 DM_DECLARE_NODE_NAME(CreateShadows, PowerVIBe)
 
 CreateShadows::CreateShadows()
@@ -57,8 +58,11 @@ CreateShadows::CreateShadows()
     sunnodes = DM::View("SunNodes", DM::NODE, DM::WRITE);
     sunnodes.addAttribute("sunrays");
     sunnodes.addAttribute("sunhours");
+    sunnodes.addAttribute("direct_radiation");
 
-    mesh = DM::View("Mesh", DM::FACE, DM::WRITE);
+    mesh = DM::View("SunMesh", DM::FACE, DM::WRITE);
+    mesh.addLinks("SunNodes", sunnodes);
+
 
     onlyWindows = false;
     gridSize = 1;
@@ -283,8 +287,8 @@ void CreateShadows::caclulateSunPositions(const QDate &start, const QDate &end, 
 
 void CreateShadows::run()
 {
-    //ofstream myfile;
-    //myfile.open ("ress.txt");
+
+    double T_LK[] = {2,2,2,3,3,4,4,4,4,3,2,2};
 
     DM::System * city = this->getData("city");
 
@@ -368,61 +372,78 @@ void CreateShadows::run()
         //myfile << uuid << "\t" << f->getAttribute("type")->getString() << "\n";
         if (f->getAttribute("type")->getString() != "window" && this->onlyWindows)
             continue;
+        //if (f->getAttribute("type")->getString() != "ceiling_roof" && f->getAttribute("type")->getString() != "ceiling_cellar" )
+            //continue;
         std::vector<DM::Node*> nodes = TBVectorData::getNodeListFromFace(city, f);
         DM::Node dN1 = *(nodes[1]) - *(nodes[0]);
         DM::Node dN2 = *(nodes[2]) - *(nodes[0]);
         DM::Node dir = TBVectorData::NormalVector(dN1, dN2);
         //std::vector<DM::Node> centers = this->createRaster(city, f);
-        std::vector<DM::Node> centers = DM::CGALGeometry::RegularFaceTriangulation(city, f, gridSize);
+        std::vector<int>  nodeids;
+
+        std::vector<DM::Node> centers = DM::CGALGeometry::RegularFaceTriangulation(city, f, nodeids, gridSize);
+
         //Angle Between Vectors since face is planar the it stays the same for all positions
         std::vector<double> directions(numberOfDays*24,0);
         std::vector<double> beamradiation(numberOfDays*24,0);
         for (int h = 0; h < numberOfDays*24; h++){
             if (!sunPos[h])
                 continue;
+            QDate date_counter = startDate.addDays(h/24);
+
             directions[h]= TBVectorData::AngelBetweenVectors(dir,  *(sunPos[h]) ) * 180/pi;
-            beamradiation[h] = SolarRediation::BeamRadiation((int)h/24, 500, (90 -sunLocs[h]->dZenithAngle)/180.*pi ,directions[h]/180.*pi);
+
+
+            double t_lk = T_LK[date_counter.month()-1];
+            beamradiation[h] = SolarRediation::BeamRadiation(date_counter.dayOfYear(), 500, (90 -sunLocs[h]->dZenithAngle)/180.*pi ,directions[h]/180.*pi, t_lk);
+
         }
 
 
         date = startDate;
         int numberofCheckedIntersections = 0;
-        int numberOfCenters = centers.size();
+        int numberOfCenters = nodeids.size();
         //Create Mesh
-        std::vector<DM::Node*> nodesToCheck(numberOfCenters);
-        for (int c = 0; c < numberOfCenters/3; c++) {
+        //CreateNodes
+        std::vector<DM::Node*> nodesToCheck;
+        foreach(DM::Node n, centers) {
+            nodesToCheck.push_back(city->addNode(n, sunnodes));
+        }
+
+
+        for (unsigned int c = 0; c < nodeids.size()/3; c++) {
             std::vector<DM::Node*> tnodes;
             for (int j = 0; j < 3; j++) {
-                DM::Node * n = city->addNode(centers[c*3+j], sunnodes);
-                tnodes.push_back(n);
-                nodesToCheck[c*3+j] = n;
+                tnodes.push_back(nodesToCheck[nodeids[c*3+j]]);
             }
             tnodes.push_back(tnodes[0]);
             city->addFace(tnodes, this->mesh);
         }
 
         int newnumberOfCenters = nodesToCheck.size();
-        newnumberOfCenters++;
-        //#pragma omp parallel for
-        for (int c = 0; c < numberOfCenters; c++) {
+
+        DM::Logger(DM::Debug) << numberOfCenters;
+        DM::Logger(DM::Debug) << newnumberOfCenters;
+#pragma omp parallel for
+        for (int c = 0; c < newnumberOfCenters; c++) {
             DM::Node * n1 =  nodesToCheck[c];
-            n1->addAttribute("sunHoursNode", 0);
             std::vector<double> color(3);
             color[2] = 1;
             n1->getAttribute("color")->setDoubleVector(color);
-            f->getAttribute("SunRays")->setLink("SunRays", n1->getUUID());
-
             std::vector<std::string> dates;
-
             std::vector<double> angles;
 
             QDate date = startDate;
             int dayInSimulation = -1;
             int hoursInSimulation = -1;
-
+            std::vector<double> vsunhours;
+            std::vector<double> vsundirect;
+            std::vector<double> vsundiffuse;
             do {
                 dayInSimulation++;
                 int sunHoursNode = 0;
+                double sunDirect = 0;
+
                 for (int h = 0; h < 24; h++) {
 
                     hoursInSimulation++;
@@ -438,10 +459,10 @@ void CreateShadows::run()
                     double x1 = n1->getX();
                     double y1 = n1->getY();
                     double z1 = n1->getZ();
-
-                    double sx1 = sunPos[hoursInSimulation]->getX();
-                    double sy1 = sunPos[hoursInSimulation]->getY();
-                    double sz1 = sunPos[hoursInSimulation]->getZ();
+                    DM::Node * sunpos = sunPos[hoursInSimulation];
+                    double sx1 = sunpos->getX();
+                    double sy1 = sunpos->getY();
+                    double sz1 = sunpos->getZ();
 
                     Point p1(x1 + sx1 * 0.0001 , y1 + sy1 * 0.0001, z1 + sz1 * 0.0001);
                     Point p2(x1 + sx1 * 10000 , y1 + sy1 * 10000, z1 + sz1 * 10000);
@@ -454,27 +475,13 @@ void CreateShadows::run()
                     }
 
                     double radiation = beamradiation[hoursInSimulation];
+                    sunDirect+=radiation;
+                    sunHoursNode++;
+
+                    //Total Energy per Face
                     solarRadiation[dayInSimulation] = solarRadiation[dayInSimulation] + radiation/(double) centers.size();
                     solarHours[dayInSimulation] = solarHours[dayInSimulation] + 1/(double) centers.size();
-                    sunHoursNode++;
-                    n1->addAttribute("sunhours", sunHoursNode);
-                    if (sunHoursNode <= 16) {
-                        color[0] = sunHoursNode/(16.);
-                        color[1] = 1- sunHoursNode/(16.);
-                        color[2] = 0;
-                    }
-                    if (sunHoursNode <= 16/2) {
-                        color[0] = 2*sunHoursNode/(16.);
-                        color[1] = 1;
-                        color[2] = 0;
-                    }
-                    if (sunHoursNode <= 16/4) {
-                        color[1] = 4*sunHoursNode/(16.);
-                        color[2] = 1. - (sunHoursNode  * 4)/16.;
-                    }
-                    color[0] = sunHoursNode/(16.);
-                    color[2] = 1. - sunHoursNode/16.;
-                    n1->getAttribute("color")->setDoubleVector(color);
+
                     if (!createRays )
                         continue;
                     DM::Node * n2 = city->addNode(*n1+*(sunPos[hoursInSimulation])*gridSize/2.);
@@ -494,10 +501,18 @@ void CreateShadows::run()
                     angles.push_back(w);
                 }
                 date = date.addDays(1);
-
-                if (!createRays)
+                //DM::Logger(DM::Debug) << date.toString("yyyy-MM-dd");
+                vsunhours.push_back(sunHoursNode);
+                vsundirect.push_back(sunDirect);
+                //DM::Logger(DM::Debug) <<sunDirect;
+                //DM::Logger(DM::Debug) <<sunHoursNode;
+                if (createRays)
                     n1->getAttribute("sunrays")->addTimeSeries(dates, angles);
             } while (date < endDate);
+            n1->getAttribute("sunhours")->addTimeSeries(day_dates, vsunhours);
+            n1->getAttribute("direct_radiation")->addTimeSeries(day_dates, vsundirect);
+
+
         }
         TODO--;
         DM::Logger(DM::Debug) << "intersections checked " << numberofCheckedIntersections << " TODO " << TODO;

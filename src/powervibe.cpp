@@ -38,6 +38,7 @@
 #include <createshadows.h>
 #include <singlehouse.h>
 #include <modernbuilding.h>
+#include <advancedparceling.h>
 
 using namespace DM;
 
@@ -54,4 +55,5 @@ extern "C" void DM_HELPER_DLL_EXPORT  registerModules(ModuleRegistry *registry) 
     registry->addNodeFactory(new NodeFactory<CreateShadows>());
     registry->addNodeFactory(new NodeFactory<SingleHouse>());
     registry->addNodeFactory(new NodeFactory<ModernBuilding>());
+    registry->addNodeFactory(new NodeFactory<AdvancedParceling>());
 }
