@@ -12,10 +12,16 @@ private:
 
     double aspectRatio;
     double length;
+    double offset;
+
+    std::string InputViewName;
+    std::string OutputViewName;
 
 public:
     AdvancedParceling();
     void run();
+
+    void init();
 
     void createSubdevision(DM::System * sys,  DM::Face * f, int gen);
     void finalSubdevision(DM::System * sys, DM::Face * f, int gen);

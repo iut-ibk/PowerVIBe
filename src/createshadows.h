@@ -22,6 +22,7 @@ private:
         bool createDayly;
         bool createHourly;
         bool onlyWindows;
+        bool onlyBuildings;
 
         int startday;
         int startmonth;

@@ -78,8 +78,13 @@ CreateShadows::CreateShadows()
     data.push_back(mesh);
 
     createRays = false;
+
     this->addParameter("CreateRays", DM::BOOL, &createRays);
     this->addParameter("Only Windows", DM::BOOL, &onlyWindows);
+
+    onlyBuildings = true;
+
+    this->addParameter("Only Buildings", DM::BOOL, &onlyBuildings);
 
     startday = 1;
     startmonth = 1;
@@ -296,10 +301,12 @@ void CreateShadows::run()
 
     std::vector<std::string> geom_uuids =  city->getUUIDs(models);
     //Add Digital Elevation May
-    std::vector<std::string> elevation_uuids = city->getUUIDs(dem);
+    if (!onlyBuildings) {
+        std::vector<std::string> elevation_uuids = city->getUUIDs(dem);
 
-    foreach (std::string uuid, elevation_uuids) {
-        model_uuids.push_back(uuid);
+        foreach (std::string uuid, elevation_uuids) {
+            model_uuids.push_back(uuid);
+        }
     }
 
     //Add Digital Elevation May
@@ -315,7 +322,12 @@ void CreateShadows::run()
 
     //Init Triangles
     std::list<Triangle> triangles;
-    foreach (std::string uuid, geom_uuids) {
+    //foreach (std::string uuid, geom_uuids) {
+
+    int number_geos = geom_uuids.size();
+#pragma omp parallel for
+    for (int i = 0; i < number_geos; i++) {
+        std::string uuid = geom_uuids[i];
         DM::Face * f = city->getFace(uuid);
         std::vector<DM::Node> tri = DM::CGALGeometry::FaceTriangulation(city, f);
         for(unsigned int i = 0; i < tri.size(); i +=3){
@@ -360,7 +372,7 @@ void CreateShadows::run()
 
     int TODO = nuuids;
 
-
+    #pragma omp parallel for
     for (int i = 0; i < nuuids; i++){
         //CreateInitalSolarRadiationVector
         std::vector<double> solarRadiation(numberOfDays, 0);
@@ -373,7 +385,7 @@ void CreateShadows::run()
         if (f->getAttribute("type")->getString() != "window" && this->onlyWindows)
             continue;
         //if (f->getAttribute("type")->getString() != "ceiling_roof" && f->getAttribute("type")->getString() != "ceiling_cellar" )
-            //continue;
+        //continue;
         std::vector<DM::Node*> nodes = TBVectorData::getNodeListFromFace(city, f);
         DM::Node dN1 = *(nodes[1]) - *(nodes[0]);
         DM::Node dN2 = *(nodes[2]) - *(nodes[0]);
@@ -424,7 +436,7 @@ void CreateShadows::run()
 
         DM::Logger(DM::Debug) << numberOfCenters;
         DM::Logger(DM::Debug) << newnumberOfCenters;
-#pragma omp parallel for
+        //#pragma omp parallel for
         for (int c = 0; c < newnumberOfCenters; c++) {
             DM::Node * n1 =  nodesToCheck[c];
             std::vector<double> color(3);

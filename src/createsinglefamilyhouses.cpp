@@ -21,6 +21,7 @@ CreateSingleFamilyHouses::CreateSingleFamilyHouses()
     l = 16;
     b = 10;
     alpha = 30;
+    onSingal = false;
 
     this->addParameter("l", DM::DOUBLE, &l);
     this->addParameter("b", DM::DOUBLE, &b);
@@ -31,8 +32,13 @@ CreateSingleFamilyHouses::CreateSingleFamilyHouses()
     this->addParameter("T_heating", DM::DOUBLE, &heatingT);
     this->addParameter("T_cooling", DM::DOUBLE, &coolingT);
 
+    this->addParameter("onSignal", DM::BOOL, &onSingal);
 
+    cityView = DM::View("CITY", DM::FACE, DM::READ);
+    cityView.getAttribute("year");
     parcels = DM::View("PARCEL", DM::FACE, DM::READ);
+    parcels.addAttribute("is_built");
+
     parcels.getAttribute("centroid_x");
     parcels.getAttribute("centroid_y");
 
@@ -81,6 +87,7 @@ CreateSingleFamilyHouses::CreateSingleFamilyHouses()
     data.push_back(parcels);
     data.push_back(footprint);
     data.push_back(building_model);
+    data.push_back(cityView);
     this->addData("City", data);
 }
 
@@ -91,12 +98,20 @@ void CreateSingleFamilyHouses::run()
     DM::System * city = this->getData("City");
     DM::SpatialNodeHashMap spatialNodeMap(city, 100);
 
+    std::vector<std::string> city_uuid = city->getUUIDs(cityView);
+    if (city_uuid.size() != 0) {
+        buildyear = city->getComponent(city_uuid[0])->getAttribute("year")->getDouble();
+    }
+
     std::vector<std::string> parcelUUIDs = city->getUUIDs(parcels);
 
     int nparcels = parcelUUIDs.size();
-    //#pragma omp parallel for
+    int numberOfHouseBuild = 0;
+#pragma omp parallel for
     for (int i = 0; i < nparcels; i++) {
         DM::Face * parcel = city->getFace(parcelUUIDs[i]);
+        if (parcel->getAttribute("released")->getDouble() < 0.01 && onSingal == true)
+            continue;
         std::vector<DM::Node * > nodes  = TBVectorData::getNodeListFromFace(city, parcel);
         
         std::vector<DM::Node> bB;
@@ -108,19 +123,19 @@ void CreateSingleFamilyHouses::run()
         l = 16;
         b = 10;
 
-        QPointF f1 (centroid.getX() - l/2, centroid.getY() - b/2);
-        QPointF f2 (centroid.getX() + l/2, centroid.getY() - b/2);
-        QPointF f3 (centroid.getX() + l/2, centroid.getY() + b/2);
-        QPointF f4 (centroid.getX() - l/2, centroid.getY() + b/2);
+        QPointF f1 (- l/2,  - b/2);
+        QPointF f2 (+ l/2,- b/2);
+        QPointF f3 ( + l/2,  + b/2);
+        QPointF f4 (- l/2,  + b/2);
 
         QPolygonF original = QPolygonF() << f1 << f2 << f3 << f4;
-        QTransform transform = QTransform().rotate(0);
+        QTransform transform = QTransform().rotate(angle);
         QPolygonF rotated = transform.map(original);
         
         std::vector<DM::Node * > houseNodes;
         
         foreach (QPointF p, rotated) {
-            houseNodes.push_back(spatialNodeMap.addNode(p.x(), p.y(), 0, 0.01, DM::View()));
+            houseNodes.push_back(spatialNodeMap.addNode(p.x()+centroid.getX(), p.y()+centroid.getY(), 0, 0.01, DM::View()));
             
         }
         if (houseNodes.size() < 2) {
@@ -173,7 +188,9 @@ void CreateSingleFamilyHouses::run()
         //Create Links
         building->getAttribute("PARCEL")->setLink(parcels.getName(), parcel->getUUID());
         parcel->getAttribute("BUILDING")->setLink(houses.getName(), building->getUUID());
+        parcel->addAttribute("is_built",1);
+        numberOfHouseBuild++;
         
     }
-    Logger(Debug) << "Created Houses " << nparcels;
+    Logger(Debug) << "Created Houses " << numberOfHouseBuild;
 }

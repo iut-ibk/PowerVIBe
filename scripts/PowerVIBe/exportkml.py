@@ -37,7 +37,7 @@ class ExportKML(Module):
     
     def rotatePolygon(self, nodes, deg):
         nodes_rotated = []
-        rad = deg * 180. / math.pi
+        rad = deg /180. * math.pi
         for n in nodes:
             x = n.getX()
             y = n.getY()
@@ -62,7 +62,7 @@ class ExportKML(Module):
         l = cmp.getAttribute("l_bounding").getDouble()
         b = cmp.getAttribute("b_bounding").getDouble()
         h = cmp.getAttribute("h_bounding").getDouble()
-        alpha = cmp.getAttribute("alhpa_bounding").getDouble()
+        alpha = cmp.getAttribute("alpha_bounding").getDouble()
         
         nodes = []
         nodes.append(Node(l/2, -b/2, h))
@@ -95,12 +95,16 @@ class ExportKML(Module):
             coordinates+="{0},{1},{2}".format(n.getX(), n.getY(), n.getZ())+"\n"
     
         
-        cmp
+        y = int(cmp.getAttribute("built_year").getDouble())
+        m = 1
+        d = 1
         pm = KML.Placemark(
                            KML.name(uuid+"_Data"),
                            exdata,
                            KML.styleUrl("#transRedPoly"),
-
+                           KML.TimeStamp(
+                               KML.when((date(y,m,d)).strftime('%Y-%m-%dT%H:%MZ')),
+                            ),
                            KML.Polygon(
                                        KML.extrude(1),
                                        KML.altitudeMode("relativeToGround"),
@@ -238,7 +242,7 @@ class ExportKML(Module):
         if hasZ:
             n.append(Z)
         if len(n) < 2:
-               print "something is woring"
+               print "something is wrong"
                tri = []
                return tri
         cens,edg,tri,neig = triang.delaunay(n[0], n[1])

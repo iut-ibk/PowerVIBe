@@ -13,6 +13,7 @@ private:
     DM::View parcels;
     DM::View building_model;
     DM::View footprint;
+    DM::View cityView;
 
     double heatingT;
     double coolingT;
@@ -21,6 +22,7 @@ private:
     double alpha;
     double l;
     double b;
+    bool onSingal;
 
     void createWindows(DM::Face * f, double distance, double width, double height);
 public:
