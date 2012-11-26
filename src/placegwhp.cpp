@@ -33,7 +33,8 @@
 #include "alglib/src/spline1d.h"
 DM_DECLARE_NODE_NAME(PlaceGWHP, PowerVIBe)
 
-PlaceGWHP::PlaceGWHP()
+PlaceGWHP::PlaceGWHP():
+pi(3.14159265358979323846)
 {
     buildings = DM::View("BUILDING", DM::COMPONENT, DM::READ);
     buildings.getAttribute("PARCEL");
@@ -107,6 +108,8 @@ void PlaceGWHP::run()
         DM::Node n = *city->getNode(parcel->getNodes()[0]);
 
         //Create Random Node List to Check
+
+        //CGALGeometry::OffsetPolygon()
 
         std::vector<DM::Node> possibleNodes = TBVectorData::CreateRaster(city, parcel,5.0);
 

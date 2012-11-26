@@ -43,7 +43,7 @@ class DM_HELPER_DLL_EXPORT PlaceGWHP : public Module
     DM::View parcels;
     DM::View ghwps;
     DM::View thermal_effected_area;
-    const double pi =  3.14159265358979323846;
+    const double pi;
     std::string database_location;
     
 public:
