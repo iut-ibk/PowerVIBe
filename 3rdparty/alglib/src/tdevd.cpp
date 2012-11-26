@@ -24,9 +24,7 @@ http://www.fsf.org/licensing/licenses
 >>> END OF LICENSE >>>
 *************************************************************************/
 
-#ifdef _WIN32
-#include <stdafx.h>
-#endif
+
 #include "tdevd.h"
 
 static void tdevde2(const double& a,

@@ -18,9 +18,7 @@ http://www.fsf.org/licensing/licenses
 >>> END OF LICENSE >>>
 *************************************************************************/
 
-#ifdef _WIN32
-#include <stdafx.h>
-#endif
+
 #include "bdss.h"
 
 static void dskfoldsplit(const ap::real_2d_array& xy,

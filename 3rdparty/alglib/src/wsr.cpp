@@ -18,9 +18,7 @@ http://www.fsf.org/licensing/licenses
 >>> END OF LICENSE >>>
 *************************************************************************/
 
-#ifdef _WIN32
-#include <stdafx.h>
-#endif
+
 #include "wsr.h"
 
 static void wcheb(double x, double c, double& tj, double& tj1, double& r);

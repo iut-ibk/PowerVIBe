@@ -24,9 +24,7 @@ http://www.fsf.org/licensing/licenses
 >>> END OF LICENSE >>>
 *************************************************************************/
 
-#ifdef _WIN32
-#include <stdafx.h>
-#endif
+
 #include "bdsvd.h"
 
 static bool bidiagonalsvddecompositioninternal(ap::real_1d_array& d,

@@ -24,9 +24,7 @@ http://www.fsf.org/licensing/licenses
 >>> END OF LICENSE >>>
 *************************************************************************/
 
-#ifdef _WIN32
-#include <stdafx.h>
-#endif
+
 #include "rcond.h"
 
 static void internalestimatercondlu(const ap::real_2d_array& ludcmp,

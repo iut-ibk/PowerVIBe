@@ -24,9 +24,7 @@ http://www.fsf.org/licensing/licenses
 >>> END OF LICENSE >>>
 *************************************************************************/
 
-#ifdef _WIN32
-#include <stdafx.h>
-#endif
+
 #include "nsevd.h"
 
 static void internaltrevc(const ap::real_2d_array& t,

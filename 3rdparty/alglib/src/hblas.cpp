@@ -24,9 +24,7 @@ http://www.fsf.org/licensing/licenses
 >>> END OF LICENSE >>>
 *************************************************************************/
 
-#ifdef _WIN32
-#include <stdafx.h>
-#endif
+
 #include "hblas.h"
 
 void hermitianmatrixvectormultiply(const ap::complex_2d_array& a,

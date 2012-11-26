@@ -1,7 +1,5 @@
 
-#ifdef _WIN32
-#include <stdafx.h>
-#endif
+
 #include "nearunityunit.h"
 
 double log1p(double x)

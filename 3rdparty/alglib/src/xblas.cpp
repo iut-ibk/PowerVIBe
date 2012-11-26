@@ -1,7 +1,5 @@
 
-#ifdef _WIN32
-#include <stdafx.h>
-#endif
+
 #include "xblas.h"
 
 static double xfastpow(double r, int n);

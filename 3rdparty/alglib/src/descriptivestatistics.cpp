@@ -18,9 +18,6 @@ http://www.fsf.org/licensing/licenses
 >>> END OF LICENSE >>>
 *************************************************************************/
 
-#ifdef _WIN32
-#include <stdafx.h>
-#endif
 #include "descriptivestatistics.h"
 
 static void internalstatheapsort(ap::real_1d_array& arr, int n);

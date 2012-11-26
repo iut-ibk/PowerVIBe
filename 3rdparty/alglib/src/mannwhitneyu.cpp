@@ -18,9 +18,7 @@ http://www.fsf.org/licensing/licenses
 >>> END OF LICENSE >>>
 *************************************************************************/
 
-#ifdef _WIN32
-#include <stdafx.h>
-#endif
+
 #include "mannwhitneyu.h"
 
 static void ucheb(double x, double c, double& tj, double& tj1, double& r);

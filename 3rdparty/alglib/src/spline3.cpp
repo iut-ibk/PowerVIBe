@@ -18,9 +18,7 @@ http://www.fsf.org/licensing/licenses
 >>> END OF LICENSE >>>
 *************************************************************************/
 
-#ifdef _WIN32
-#include <stdafx.h>
-#endif
+
 #include "spline3.h"
 
 static void heapsortpoints(ap::real_1d_array& x, ap::real_1d_array& y, int n);

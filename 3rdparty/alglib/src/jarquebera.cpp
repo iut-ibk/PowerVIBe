@@ -18,9 +18,7 @@ http://www.fsf.org/licensing/licenses
 >>> END OF LICENSE >>>
 *************************************************************************/
 
-#ifdef _WIN32
-#include <stdafx.h>
-#endif
+
 #include "jarquebera.h"
 
 static void jarqueberastatistic(const ap::real_1d_array& x, int n, double& s);
