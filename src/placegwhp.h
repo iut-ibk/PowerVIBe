@@ -29,7 +29,7 @@
 #define __DynaMind_ToolBox__placegwhp__
 
 #include <iostream>
-
+#include <vector>
 #include <dm.h>
 
 using namespace DM;
@@ -38,21 +38,25 @@ class DM_HELPER_DLL_EXPORT PlaceGWHP : public Module
 {
     DM_DECLARE_NODE(PlaceGWHP)
     
-private:
-    DM::View buildings;
+    private:
+        DM::View buildings;
     DM::View parcels;
     DM::View ghwps;
-    DM::View regzones;;
-    const double pi =  3.14159265;
+    DM::View thermal_effected_area;
+    const double pi =  3.14159265358979323846;
     std::string database_location;
     
 public:
     PlaceGWHP();
     void run();
     
-    void drawTemperaturAnomaly(DM::Node p, double l1, double l2, double b, double T, DM::System * sys, DM::View v);
+    void drawTemperaturAnomalyComplex(DM::Node p, double l1, double l2, double b, double T, DM::System * sys, DM::View v);
+    std::vector<DM::Node> drawTemperaturAnomalySimple(DM::Node p, double l1, double l2, double b, double T, DM::System * sys, DM::View v);
     double calcuateHydraulicEffectedArea(double Q, double kf, double IG, double kfhTokfh);
     double calculateWaterAmount(double demandHeating, double deltaT);
+
+    bool checkThermalEffectedAreas(System *sys, const std::vector<DM::Node > & nodes);
+
 };
 
 #endif /* defined(__DynaMind_ToolBox__placegwhp__) */

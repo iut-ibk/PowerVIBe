@@ -4,7 +4,7 @@
 double SolarRediation::BeamRadiation(unsigned int dayOftheYear, double elevation, double altitude, double alpha, double T_LK)
 {
     //double T_LK = 2; //Linke aotmosheric tubidity factor
-    const double pi =  3.14159265;
+    const double pi =  3.14159265358979323846;
     const double I_0  = 1367; // Solar constant W/m2
     //double altitudeDG = altitude * 180 / pi;
 

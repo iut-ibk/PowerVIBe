@@ -99,16 +99,26 @@ void AdvancedParceling::createSubdevision(DM::System * sys, DM::Face *f, int gen
 
     DM::Node center = TBVectorData::CaclulateCentroid(sys, bb);
 
-    //DM::Logger(DM::Debug) << alpha;
+
     if (this->length*2 > size[0]) {
         finalSubdevision(sys, f, gen+1);
         return;
     }
     //Create New Face
     QPolygonF f_origin = TBVectorData::FaceAsQPolgonF(sys, f);
-    //DM::Logger(DM::Debug) << "BoundigBox " << size[0] <<" " << size[1];
-    for (int i = 0; i < 2; i++) {
-        QRectF r1 (-size[0]/2.+i*size[0]/2., -size[1]/2, size[0]/2, size[1]);
+
+    int elements = size[1]/(this->length);
+    if (elements < 4) {
+        elements = 3;
+    } else {
+        elements = 2;
+    }
+
+    for (int i = 0; i < elements; i++) {
+        QRectF r1 (-size[0]/2.+ i*size[0]/(double)elements,  -size[1]/2, size[0]/(double)elements, size[1]);
+
+        //QRectF r1 (-size[0]/2., -size[1]/2 + i*size[1]/((double)elements),  size[0], size[1]/(double)elements);
+        //QRectF r1 (-size[0]/2.+i*size[0]/2., -size[1]/2, size[0]/2, size[1]);
         QTransform t;
         t.rotate(alpha);
 
@@ -138,26 +148,6 @@ void AdvancedParceling::createSubdevision(DM::System * sys, DM::Face *f, int gen
             newFace.push_back(sys->addNode(DM::Node(n.getX(), n.getY(), 0)));
         newFace.push_back(newFace[0]);
 
-        //DM::SpatialNodeHashMap nodeChecker(sys, 10, false);
-
-        //intersected = intersection;
-        /*std::vector<DM::Node*> newFace;
-        foreach (QPointF p, intersected) {
-           // DM::Logger(DM::Debug) << p.x() <<" " << p.y();
-            bool checked = false;
-            foreach (DM::Node * n, newFace) {
-                if (n->compare2d(DM::Node(p.x(), p.y(), 0),0.0001))
-                    checked = true;
-            }
-            if (checked)
-                continue;
-            //if (nodeChecker.findNode(p.x(), p.y(),0.0000001) != 0)
-                //continue;
-            //newFace.push_back(nodeChecker.addNode(p.x(), p.y(), 0.,0.0000001));
-            newFace.push_back(sys->addNode(p.x(), p.y(), 0.));
-        }*/
-
-        //DM::Logger(DM::Debug) << newFace.size();
         if (newFace.size() < 3) {
             DM::Logger(DM::Warning) << "Advanced parceling interseciton failed";
             continue;
@@ -221,34 +211,6 @@ void AdvancedParceling::finalSubdevision(DM::System *sys, DM::Face *f, int gen)
         foreach (DM::Node n, intersected_nodes)
             newFace.push_back(sys->addNode(DM::Node(n.getX(), n.getY(), 0)));
         newFace.push_back(newFace[0]);
-
-
-        //DM::Logger(DM::Debug) << "Center " << center.getX() <<" " << center.getY();
-
-        //DM::Logger(DM::Debug) << intersection[0].x() <<" " << intersection[1].y();
-        /*QPolygonF intersected = f_origin.intersected(intersection);
-
-        if (intersected.size() == 0)
-            intersected = intersection;
-
-        DM::SpatialNodeHashMap nodeChecker(sys, 10, false);
-
-        //intersected = intersection;
-        std::vector<DM::Node*> newFace;
-        foreach (QPointF p, intersected) {
-           // DM::Logger(DM::Debug) << p.x() <<" " << p.y();
-            bool checked = false;
-            foreach (DM::Node * n, newFace) {
-                if (n->compare2d(DM::Node(p.x(), p.y(), 0),0.00001))
-                    checked = true;
-            }
-            if (checked)
-                continue;
-            //if (nodeChecker.findNode(p.x(), p.y(),0.0000001) != 0)
-                //continue;
-            //newFace.push_back(nodeChecker.addNode(p.x(), p.y(), 0.,0.0000001));
-            newFace.push_back(sys->addNode(p.x(), p.y(), 0.));
-        }*/
 
         if (offset > 0.0001) {
             DM::Logger(DM::Debug) << "----";

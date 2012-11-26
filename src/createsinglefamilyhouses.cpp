@@ -43,7 +43,7 @@ CreateSingleFamilyHouses::CreateSingleFamilyHouses()
     parcels.getAttribute("centroid_y");
 
     houses = DM::View("BUILDING", DM::COMPONENT, DM::WRITE);
-    houses.addAttribute("footprint_area");
+
     houses.addAttribute("centroid_x");
     houses.addAttribute("centroid_y");
 
@@ -107,7 +107,7 @@ void CreateSingleFamilyHouses::run()
 
     int nparcels = parcelUUIDs.size();
     int numberOfHouseBuild = 0;
-#pragma omp parallel for
+//#pragma omp parallel for
     for (int i = 0; i < nparcels; i++) {
         DM::Face * parcel = city->getFace(parcelUUIDs[i]);
         if (parcel->getAttribute("released")->getDouble() < 0.01 && onSingal == true)
@@ -119,9 +119,6 @@ void CreateSingleFamilyHouses::run()
         std::vector<double> size;
         double angle = CGALGeometry::CalculateMinBoundingBox(nodes, bB,size);
         Node centroid = DM::Node(parcel->getAttribute("centroid_x")->getDouble(),  parcel->getAttribute("centroid_y")->getDouble(), 0);
-        
-        l = 16;
-        b = 10;
 
         QPointF f1 (- l/2,  - b/2);
         QPointF f2 (+ l/2,- b/2);
