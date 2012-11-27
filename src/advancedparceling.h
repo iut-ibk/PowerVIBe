@@ -9,6 +9,7 @@ class DM_HELPER_DLL_EXPORT AdvancedParceling : public DM::Module
 private:
     DM::View parcels;
     DM::View cityblocks;
+    DM::View bbs;
 
     double aspectRatio;
     double length;

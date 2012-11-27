@@ -30,6 +30,8 @@ class ExportKML(Module):
         self.createParameter("Type", STRING, "Type")
         self.Type = "COMPONENT"
         self.buildings = View("dummy", SUBSYSTEM, READ)
+        self.createParameter("EPSG",INT, "EPSG")
+        self.EPSG = 31257
         #self.models = View("Model_Building", FACE, READ)
         datastream = []
         datastream.append(self.buildings)
@@ -338,7 +340,7 @@ class ExportKML(Module):
 
     def run(self):
         self.origin = osr.SpatialReference ()
-        self.origin.ImportFromEPSG(31257)
+        self.origin.ImportFromEPSG(self.EPSG)
         stylename = "export_dm"
         doc = KML.kml(
             KML.Document(

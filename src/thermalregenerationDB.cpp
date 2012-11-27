@@ -114,7 +114,7 @@ DM::Component ThermalRegenerationDB::getThermalRegernationField(double I, double
     
     if (searchMap.size() == 0)
         return thermalReg;
-    
+    DM::Logger(DM::Debug) << "Found Regfield";
     foreach(QString name, listVals) {
        
         QStringList sl;

@@ -34,12 +34,13 @@
 DM_DECLARE_NODE_NAME(PlaceGWHP, PowerVIBe)
 
 PlaceGWHP::PlaceGWHP():
-pi(3.14159265358979323846)
+    pi(3.14159265358979323846)
 {
     buildings = DM::View("BUILDING", DM::COMPONENT, DM::READ);
     buildings.getAttribute("PARCEL");
     buildings.getAttribute("monthly_peak_heating_demand");
     buildings.getAttribute("anual_heating_demand");
+    buildings.addAttribute("geothermal_energy");
     
 
     parcels = DM::View("PARCEL", DM::FACE, DM::READ);
@@ -92,29 +93,37 @@ void PlaceGWHP::run()
         Face * parcel = city->getFace(lp.uuid);
 
         double heatingDemand = building->getAttribute("monthly_peak_heating_demand")->getDouble();
+        double heatingDuration = building->getAttribute("anual_heating_demand")->getDouble() / heatingDemand;
         double Q = calculateWaterAmount(heatingDemand, 3);
         DM::Component ghwp = TRDatabase.getThermalRegernationField(
-                    parcel->getAttribute("I")->getDouble(),
+                    parcel->getAttribute("I_ground_water")->getDouble(),
                     7,
                     parcel->getAttribute("kf")->getDouble(),
                     parcel->getAttribute("kfhTokfh")->getDouble(),
                     Q,
-                    building->getAttribute("heating_duration")->getDouble(),
+                    heatingDuration,
                     10);
-
-
-
-        //Check if confilct free
-        DM::Node n = *city->getNode(parcel->getNodes()[0]);
 
         //Create Random Node List to Check
 
-        //CGALGeometry::OffsetPolygon()
+        double d = calcuateHydraulicEffectedArea(Q,
+                                                 parcel->getAttribute("kf")->getDouble(),
+                                                 parcel->getAttribute("I_ground_water")->getDouble(),
+                                                 parcel->getAttribute("kfhTokfh")->getDouble());
 
-        std::vector<DM::Node> possibleNodes = TBVectorData::CreateRaster(city, parcel,5.0);
+        std::vector<DM::Node> offsetNodes = CGALGeometry::OffsetPolygon(TBVectorData::getNodeListFromFace(city, parcel), d);
+
+        DM::System sys_tmp;
+
+        DM::Face* parcel_offset = TBVectorData::AddFaceToSystem(&sys_tmp, offsetNodes);
+
+        if (!parcel_offset)
+            continue;
+
+        std::vector<DM::Node> possibleNodes = TBVectorData::CreateRaster(&sys_tmp, parcel_offset,5.0);
 
         //Randomize Nodes
-        for (int i = 0; i < possibleNodes.size(); i++) {
+        for (unsigned int i = 0; i < possibleNodes.size(); i++) {
             int sw1 = rand() % possibleNodes.size();
             int sw2 = rand() % possibleNodes.size();
 
@@ -153,6 +162,7 @@ void PlaceGWHP::run()
             Color.push_back(0);
             Color.push_back(1);
             tf->getAttribute("color")->setDoubleVector(Color);
+            building->addAttribute("geothermal_energy", building->getAttribute("anual_heating_demand")->getDouble());
             break;
         }
 
@@ -161,7 +171,8 @@ void PlaceGWHP::run()
 }
 double PlaceGWHP::calcuateHydraulicEffectedArea(double Q, double kf, double IG, double kfhTokfh)
 {
-    return 2+3 * pow(Q /(kf*IG*pi) * sqrt( kfhTokfh ) , (1./3.));
+    double d = 2.+3. * pow(Q /(kf*IG*1000.*pi) * sqrt( kfhTokfh ) , (1./3.));
+    return d;
 }
 
 //demand heating in W
@@ -187,7 +198,7 @@ bool PlaceGWHP::checkThermalEffectedAreas(System *sys, const std::vector<DM::Nod
         std::vector<DM::Node* > nodelist = TBVectorData::getNodeListFromFace(sys, f);
 
         if (CGALGeometry::DoFacesInterect(nodelist,nodesToCheck )) {
-            for (int i = 0; i < nodesToCheck.size()-1; i++)
+            for (unsigned int i = 0; i < nodesToCheck.size()-1; i++)
                 delete nodesToCheck[i];
             return true;
         }
@@ -197,7 +208,7 @@ bool PlaceGWHP::checkThermalEffectedAreas(System *sys, const std::vector<DM::Nod
 
     //nodesToCheck.pop_back();
 
-    for (int i = 0; i < nodesToCheck.size()-1; i++)
+    for (unsigned int i = 0; i < nodesToCheck.size()-1; i++)
         delete nodesToCheck[i];
 
     return false;
