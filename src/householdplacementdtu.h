@@ -13,6 +13,7 @@ private:
     DM::View buildings;
     DM::View households;
     DM::View persons;
+    DM::View vCity;
 
 public:
 

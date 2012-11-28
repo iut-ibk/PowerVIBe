@@ -40,7 +40,7 @@
 #include <modernbuilding.h>
 #include <advancedparceling.h>
 #include <regionaltemperatur.h>
-
+#include <placejobsdtu.h>
 using namespace DM;
 
 extern "C" void DM_HELPER_DLL_EXPORT  registerModules(ModuleRegistry *registry) {
@@ -58,4 +58,5 @@ extern "C" void DM_HELPER_DLL_EXPORT  registerModules(ModuleRegistry *registry) 
     registry->addNodeFactory(new NodeFactory<ModernBuilding>());
     registry->addNodeFactory(new NodeFactory<AdvancedParceling>());
     registry->addNodeFactory(new NodeFactory<RegionalTemperatur>());
+    registry->addNodeFactory(new NodeFactory<PlaceJobsDTU>());
 }
