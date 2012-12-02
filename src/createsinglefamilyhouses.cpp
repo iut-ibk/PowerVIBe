@@ -110,7 +110,10 @@ void CreateSingleFamilyHouses::run()
 //#pragma omp parallel for
     for (int i = 0; i < nparcels; i++) {
         DM::Face * parcel = city->getFace(parcelUUIDs[i]);
+
         if (parcel->getAttribute("released")->getDouble() < 0.01 && onSingal == true)
+            continue;
+        if (parcel->getAttribute("is_built")->getDouble() > 0.01)
             continue;
         std::vector<DM::Node * > nodes  = TBVectorData::getNodeListFromFace(city, parcel);
         
