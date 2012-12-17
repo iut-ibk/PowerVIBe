@@ -42,6 +42,8 @@
 #include <regionaltemperatur.h>
 #include <placejobsdtu.h>
 #include <distancefield.h>
+#include <extrudebuildings.h>
+
 using namespace DM;
 
 extern "C" void DM_HELPER_DLL_EXPORT  registerModules(ModuleRegistry *registry) {
@@ -61,4 +63,5 @@ extern "C" void DM_HELPER_DLL_EXPORT  registerModules(ModuleRegistry *registry) 
     registry->addNodeFactory(new NodeFactory<RegionalTemperatur>());
     registry->addNodeFactory(new NodeFactory<PlaceJobsDTU>());
     registry->addNodeFactory(new NodeFactory<DistanceField>());
+    registry->addNodeFactory(new NodeFactory<ExtrudeBuildings>());
 }

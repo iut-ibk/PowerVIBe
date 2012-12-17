@@ -51,6 +51,9 @@ class MonthlyHeatingAndCooling(Module):
         self.geometry = View("Geomtry", FACE, READ)
         self.geometry.getAttribute("solar_radiaton_dayly")
         
+        self.createParameter("withSolarRadiation", BOOL, "withSolarRadiation")
+        self.withSolarRadiation = False
+        
         
         self.region = View("CITY", COMPONENT, READ)
         self.region.getAttribute("temperature_dayly")
@@ -60,7 +63,6 @@ class MonthlyHeatingAndCooling(Module):
         self.addData("City", datastream)    
         
         
-
     def run(self):
         #init Database
         city = self.getData("City")
@@ -79,7 +81,10 @@ class MonthlyHeatingAndCooling(Module):
             T_heating = building.getAttribute("T_heating").getDouble()
             T_cooling = building.getAttribute("T_cooling").getDouble()  
             V_living = building.getAttribute("V_living").getDouble()  
-            solarEnergy = self.calculateSolarRadiation(city, building)
+            solarEnergy = {}
+            if self.withSolarRadiation == True:
+                solarEnergy = self.calculateSolarRadiation(city, building)
+
             self.monthlyValues(building, V_living, L_heating, dates, temperatures, solarEnergy, T_heating)
 
                     
@@ -128,7 +133,9 @@ class MonthlyHeatingAndCooling(Module):
             date = datetime.strptime(day, '%Y-%m-%d') 
             counter += 1
             days +=1
-            qs = solarEnergy[date]
+            qs = 0.
+            if self.withSolarRadiation == True:
+                qs = solarEnergy[date]
                       
             daily_peak =  L * (T_heating - temperatures[counter])
             qe = daily_peak * 24.
@@ -147,13 +154,14 @@ class MonthlyHeatingAndCooling(Module):
                 monthlyDates.append(datetime(date.year, currentmonth, 15).strftime('%Y-%m-%d'))                          
                 monthlyHeatingLoss.append(sum_qe)
                 monthlySolarEnergy.append(sum_qs)
+                
                 etha = self.efficencyForHeatProduction(L, V, sum_qe/days, sum_qs/days) # for average month               
                 lastInsert = len(monthlyHeatingLoss) -1
                 monthlyHeatingDemand.append((sum_qe/days - etha*sum_qs/days)*days)
                 sum_sun_tot += sum_qs
                 if monthlyHeatingDemand[lastInsert] > 0:
                     sum_tot += monthlyHeatingDemand[lastInsert]
-                print str(L) + " " + str("Heating ") + str(currentmonth) + " " + str(monthlyHeatingLoss[lastInsert])+" " +str(monthlySolarEnergy[lastInsert]) +" " +str(monthlyHeatingDemand[lastInsert])
+                #print str(L) + " " + str("Heating ") + str(currentmonth) + " " + str(monthlyHeatingLoss[lastInsert])+" " +str(monthlySolarEnergy[lastInsert]) +" " +str(monthlyHeatingDemand[lastInsert])
                 
                 if monthly_peak > max_monthly_peak/days:
                     max_monthly_peak = monthly_peak/days
@@ -175,11 +183,13 @@ class MonthlyHeatingAndCooling(Module):
         
     """ Based on ÖNORM B 8110-6:2009 Part 9.4 (page 45)
         
-    The calculation is baed on monthly values 
+    The calculation is based on monthly values 
     
     """
     def efficencyForHeatProduction(self, L_t, V, Q_heating, Q_prod):
         if L_t == 0:
+            return 0
+        if Q_prod == 0:
             return 0
         
         #See page 41

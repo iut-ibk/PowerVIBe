@@ -7,11 +7,13 @@
 #include <fstream>
 #include <cgalgeometry.h>
 
+
 #include <CGAL/Simple_cartesian.h>
 #include <CGAL/AABB_tree.h>
 #include <CGAL/AABB_traits.h>
 #include <CGAL/AABB_triangle_primitive.h>
 #include <CGAL/Polyhedron_3.h>
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <sunpos.h>
 #include <QDate>
 #include <omp.h>
@@ -19,8 +21,8 @@
 #include <ogr_spatialref.h>
 #include <ogrsf_frmts.h>
 
-
-typedef CGAL::Simple_cartesian<double> K;
+//#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
+typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
 
 typedef K::FT FT;
 typedef K::Ray_3 Ray;
@@ -113,7 +115,7 @@ void CreateShadows::transformCooridnates(double &x, double &y)
     OGRSpatialReference oSourceSRS, oTargetSRS;
     OGRCoordinateTransformation *poCT;
     oTargetSRS.importFromEPSG( 4326  );
-    oSourceSRS.importFromEPSG( 31257 );
+    oSourceSRS.importFromEPSG( 31255 );
     poCT = OGRCreateCoordinateTransformation( &oSourceSRS,
                                               &oTargetSRS );
 
@@ -271,10 +273,31 @@ void CreateShadows::run()
             continue;
         //if (f->getAttribute("type")->getString() != "ceiling_roof" && f->getAttribute("type")->getString() != "ceiling_cellar" )
         //continue;
+        //if (f->getAttribute("type")->getString() != "ceiling_roof" && f->getAttribute("type")->getString() != "ceiling_cellar" )
+                //continue;
+        //if (f->getAttribute("type")->getString() != "ceiling_roof" )
+                //continue;
         std::vector<DM::Node*> nodes = TBVectorData::getNodeListFromFace(city, f);
+
+
         DM::Node dN1 = *(nodes[1]) - *(nodes[0]);
         DM::Node dN2 = *(nodes[2]) - *(nodes[0]);
         DM::Node dir = TBVectorData::NormalVector(dN1, dN2);
+
+        if (f->getAttribute("type")->getString() == "ceiling_roof" && dir.getZ() <  0) {
+            std::vector<DM::Node> bb;
+            std::vector<double> size;
+            DM::CGALGeometry::CalculateMinBoundingBox(nodes, bb,size);
+
+            DM::Node dN1 = bb[1] - bb[0];
+            DM::Node dN2 = bb[2] - bb[0];
+            dir = TBVectorData::NormalVector(dN1, dN2);
+        }
+
+
+        //DM::Logger(DM::Debug) << dir.getX() <<" " << dir.getY() <<  " " << dir.getZ();
+
+        //return;
         //std::vector<DM::Node> centers = this->createRaster(city, f);
         std::vector<int>  nodeids;
 
@@ -319,9 +342,9 @@ void CreateShadows::run()
 
         int newnumberOfCenters = nodesToCheck.size();
 
-        DM::Logger(DM::Debug) << numberOfCenters;
-        DM::Logger(DM::Debug) << newnumberOfCenters;
-        //#pragma omp parallel for
+        //DM::Logger(DM::Debug) << numberOfCenters;
+        //DM::Logger(DM::Debug) << newnumberOfCenters;
+        #pragma omp parallel for
         for (int c = 0; c < newnumberOfCenters; c++) {
             DM::Node * n1 =  nodesToCheck[c];
             std::vector<double> color(3);
@@ -350,9 +373,11 @@ void CreateShadows::run()
                     double w = directions[hoursInSimulation];
 
                     //No direct sun
+
+                    //DM::Logger(DM::Debug) << w;
                     if (w  > 90 && w < 270)
                         continue;
-
+                    //DM::Logger(DM::Debug) << "alive";
                     double x1 = n1->getX();
                     double y1 = n1->getY();
                     double z1 = n1->getZ();

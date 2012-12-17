@@ -33,8 +33,8 @@ class HeatCoefficients:
         self.db = genfromtxt(filename, dtype=None, delimiter=',',names=True)
         self.typeList = ["ceiling_cellar", "ceiling_floor", "wall_outside", "ceiling_roof", "front_door", "window"]
     def buildingPeriode(self, periods, year_built):
-        print periods
-        print year_built
+        #print periods
+        #print year_built
         prev_p = periods[0]
         for p in periods:
             if p > year_built:

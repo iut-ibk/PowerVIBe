@@ -114,13 +114,13 @@ DM::Component ThermalRegenerationDB::getThermalRegernationField(double I, double
     
     if (searchMap.size() == 0)
         return thermalReg;
-    DM::Logger(DM::Debug) << "Found Regfield";
+    //DM::Logger(DM::Debug) << "Found Regfield";
     foreach(QString name, listVals) {
        
         QStringList sl;
         foreach (double d, searchMap[name])
             sl << QString::number(d);
-        DM::Logger(DM::Debug) << name.toStdString() << sl.join(",").toStdString();
+        //DM::Logger(DM::Debug) << name.toStdString() << sl.join(",").toStdString();
         thermalReg.addAttribute(name.toStdString(), searchMap[name][0]);
     }
     

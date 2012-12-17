@@ -55,8 +55,7 @@ public:
     double calcuateHydraulicEffectedArea(double Q, double kf, double IG, double kfhTokfh);
     double calculateWaterAmount(double demandHeating, double deltaT);
 
-    bool checkThermalEffectedAreas(System *sys, const std::vector<DM::Node > & nodes);
-
+    bool checkThermalEffectedAreas(System *sys, const std::vector<DM::Node > & nodes, const std::vector<DM::Node > & possible_nodes, DM::Node & ressNode, DM::Face * parcel, double l1, double l2, double b);
 };
 
 #endif /* defined(__DynaMind_ToolBox__placegwhp__) */

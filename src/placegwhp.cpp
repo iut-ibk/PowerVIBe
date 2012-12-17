@@ -29,6 +29,8 @@
 #include "thermalregenerationDB.h"
 #include <tbvectordata.h>
 #include <cgalgeometry.h>
+#include <QPolygonF>
+#include <omp.h>
 
 #include "alglib/src/spline1d.h"
 DM_DECLARE_NODE_NAME(PlaceGWHP, PowerVIBe)
@@ -80,7 +82,10 @@ void PlaceGWHP::run()
     //Caluclate Water Demand For every building
     std::vector<std::string> building_uuids = city->getUUIDs(buildings);
     
+    int TotalNumberOfBuildings = building_uuids.size();
+    int counterDone = 0;
     foreach (std::string building_uuid, building_uuids) {
+        Logger(Debug) << "Start" << counterDone++ << "Total" << TotalNumberOfBuildings;
         DM::Component * building = city->getComponent(building_uuid);
         
         //GetParcel
@@ -111,6 +116,7 @@ void PlaceGWHP::run()
                                                  parcel->getAttribute("I_ground_water")->getDouble(),
                                                  parcel->getAttribute("kfhTokfh")->getDouble());
 
+        //Logger(Debug) << d;
         std::vector<DM::Node> offsetNodes = CGALGeometry::OffsetPolygon(TBVectorData::getNodeListFromFace(city, parcel), d);
 
         DM::System sys_tmp;
@@ -132,43 +138,47 @@ void PlaceGWHP::run()
             possibleNodes[sw2] = tmp_Node;
         }
 
-        foreach (DM::Node n, possibleNodes) {
+        //Create Temperatur Anamoly
 
-            std::vector<DM::Node> thermalNodes = drawTemperaturAnomalySimple(n, 5, ghwp.getAttribute("L")->getDouble(), ghwp.getAttribute("B")->getDouble(), 3, city, thermal_effected_area);
-            if (this->checkThermalEffectedAreas(city, thermalNodes))
-                continue;
-
-
-
-            DM::Component * g = city->addComponent(new Component(ghwp), ghwps);
-
-            g->getAttribute("BUILDING")->setLink("BUILDING", building->getUUID());
-            building->getAttribute("GHWP")->setLink("GHWP", g->getUUID());
+        std::vector<DM::Node> thermalNodes = drawTemperaturAnomalySimple(DM::Node(0,0,0), 5, ghwp.getAttribute("L")->getDouble(), ghwp.getAttribute("B")->getDouble(), 3, city, thermal_effected_area);
+        if (thermalNodes.size() == 0)
+            continue;
 
 
-            //Check Thermal Effected Areas
-            std::vector<DM::Node*> nodes_t;
-            foreach (DM::Node n, thermalNodes) {
-                nodes_t.push_back(city->addNode(n.getX(), n.getY(), n.getZ()));
-            }
-            nodes_t.push_back(nodes_t[0]);
+        DM::Node ressNode;
+        if (!this->checkThermalEffectedAreas(city, thermalNodes, possibleNodes, ressNode, parcel, 5, ghwp.getAttribute("L")->getDouble(), ghwp.getAttribute("B")->getDouble()))
+            continue;
 
-            int thermnodessize = thermalNodes.size();
 
-            thermnodessize = thermnodessize;
-            DM::Face * tf = city->addFace(nodes_t, this->thermal_effected_area);
-            std::vector<double> Color;
-            Color.push_back(0);
-            Color.push_back(0);
-            Color.push_back(1);
-            tf->getAttribute("color")->setDoubleVector(Color);
-            building->addAttribute("geothermal_energy", building->getAttribute("anual_heating_demand")->getDouble());
-            break;
+
+        DM::Component * g = city->addComponent(new Component(ghwp), ghwps);
+
+        g->getAttribute("BUILDING")->setLink("BUILDING", building->getUUID());
+        building->getAttribute("GHWP")->setLink("GHWP", g->getUUID());
+
+
+        //Check Thermal Effected Areas
+        std::vector<DM::Node*> nodes_t;
+        foreach (DM::Node n, thermalNodes) {
+            nodes_t.push_back(city->addNode(n.getX() + ressNode.getX(), n.getY() +  ressNode.getY(), n.getZ()));
         }
+        nodes_t.push_back(nodes_t[0]);
 
+        int thermnodessize = thermalNodes.size();
+
+        thermnodessize = thermnodessize;
+        DM::Face * tf = city->addFace(nodes_t, this->thermal_effected_area);
+        std::vector<double> Color;
+        Color.push_back(0);
+        Color.push_back(0);
+        Color.push_back(1);
+        tf->getAttribute("color")->setDoubleVector(Color);
+        building->addAttribute("geothermal_energy", building->getAttribute("anual_heating_demand")->getDouble());
     }
 
 }
+
+
 double PlaceGWHP::calcuateHydraulicEffectedArea(double Q, double kf, double IG, double kfhTokfh)
 {
     double d = 2.+3. * pow(Q /(kf*IG*1000.*pi) * sqrt( kfhTokfh ) , (1./3.));
@@ -183,33 +193,92 @@ double PlaceGWHP::calculateWaterAmount(double demandHeating, double deltaT)
     return A/(cvw*deltaT);
 }
 
-bool PlaceGWHP::checkThermalEffectedAreas(System *sys, const std::vector<DM::Node > & nodes)
+bool PlaceGWHP::checkThermalEffectedAreas(System *sys, const std::vector<DM::Node > & nodes, const std::vector<DM::Node > & possible_nodes, DM::Node & ressNode, DM::Face * parcel, double l1, double l2, double b)
 {
-    //Check Thermal Effected Areas
+
+    //Create Rectangle that needs to be intersected
+    QPolygonF p = TBVectorData::FaceAsQPolgonF(sys, parcel);
+
+    QRectF p_rect = p.boundingRect();
+
+    std::vector<DM::Node*> intersectionRect;
+    double x1 = p_rect.bottomLeft().x() - l1;
+    double x2 = p_rect.bottomRight().x() + l2+l1;
+
+    double y1 = p_rect.bottomLeft().y() -2*b;
+    double y2 = p_rect.topRight().y() +2*b;
+
+
+    DM::Node n1(x1,y1,0);
+    DM::Node n2(x2,y1,0);
+    DM::Node n3(x2,y2,0);
+    DM::Node n4(x1,y2,0);
+
+
+    intersectionRect.push_back(&n1);
+    intersectionRect.push_back(&n2);
+    intersectionRect.push_back(&n3);
+    intersectionRect.push_back(&n4);
+    intersectionRect.push_back(&n1);
+
+    std::vector<std::vector<DM::Node* > > nodelists;
+    std::vector<std::string> uuids = sys->getUUIDs(this->thermal_effected_area) ;
+    #pragma omp parallel for
+    for (unsigned int i = 0; i < uuids.size(); i++) {
+        std::string uuid = uuids[i];
+        DM::Face * f = sys->getFace(uuid);
+        std::vector<DM::Node* > nodelist = TBVectorData::getNodeListFromFace(sys, f);
+        if (CGALGeometry::DoFacesInterect(intersectionRect,nodelist ))
+            nodelists.push_back(nodelist);
+    }
+    Logger(Debug) << "Total " << uuids.size() << "check " << nodelists.size();
     std::vector<DM::Node*> nodesToCheck;
     foreach (DM::Node n, nodes) {
         nodesToCheck.push_back(new DM::Node(n.getX(), n.getY(), n.getZ()));
     }
     nodesToCheck.push_back(nodesToCheck[0]);
 
-    std::vector<std::string> uuids = sys->getUUIDs(this->thermal_effected_area) ;
-    foreach (std::string uuid, uuids) {
-        DM::Face * f = sys->getFace(uuid);
-        std::vector<DM::Node* > nodelist = TBVectorData::getNodeListFromFace(sys, f);
+    int nodeID = -1;
+    //#pragma omp parallel for
+    for (unsigned int j = 0; j < possible_nodes.size(); j++) {
 
-        if (CGALGeometry::DoFacesInterect(nodelist,nodesToCheck )) {
-            for (unsigned int i = 0; i < nodesToCheck.size()-1; i++)
-                delete nodesToCheck[i];
-            return true;
+        if (nodeID != -1) continue;
+
+        DM::Node n_ref = possible_nodes[j];
+        for (unsigned int i = 0; i < nodes.size(); i++) {
+            DM::Node * n = nodesToCheck[i];
+            n->setX( nodes[i].getX() +  n_ref.getX() );
+            n->setY( nodes[i].getY() +  n_ref.getY() );
         }
+        DM::Node * n = nodesToCheck[nodesToCheck.size()-1];
+        n->setX(nodesToCheck[0]->getX());
+        n->setY(nodesToCheck[0]->getY());
+
+        bool tmp_intersect = false;
+        for (unsigned int i = 0; i < nodelists.size(); i++) {
+            if (CGALGeometry::DoFacesInterect(nodelists[i],nodesToCheck )) {
+                tmp_intersect = true;
+                break;
+            }
+        }
+        if (tmp_intersect)
+            continue;
+
+        if (nodeID == -1)
+            nodeID = j;
 
     }
 
-
-    //nodesToCheck.pop_back();
-
     for (unsigned int i = 0; i < nodesToCheck.size()-1; i++)
         delete nodesToCheck[i];
+
+    if (nodeID != -1) {
+        ressNode.setX(possible_nodes[nodeID].getX());
+        ressNode.setY(possible_nodes[nodeID].getY());
+        return true;
+    }
+
+
 
     return false;
 
@@ -220,9 +289,11 @@ std::vector<DM::Node> PlaceGWHP::drawTemperaturAnomalySimple(DM::Node p, double 
     if (l1 < 1 || l2 < 1 || b < 1 ) {
 
         std::cout << "Warning l1 or l2 or b is zero" << std::endl;
+        std::vector<Node> ress;
+        return ress;
     }
     double l = l1+l2;
-    double spliter = 40;
+    double spliter = 9;
     std::vector<Node> p_above;
     std::vector<Node> p_above_side;
 
@@ -264,8 +335,8 @@ std::vector<DM::Node> PlaceGWHP::drawTemperaturAnomalySimple(DM::Node p, double 
         p_above.push_back(n);
 
 
-    DM::Logger(DM::Debug) << p_above[0].getX() << " " <<  p_above[0].getY();
-    DM::Logger(DM::Debug) << p_above[p_above.size()-1].getX() << " " <<  p_above[p_above.size()-1].getY();
+    //DM::Logger(DM::Debug) << p_above[0].getX() << " " <<  p_above[0].getY();
+    //DM::Logger(DM::Debug) << p_above[p_above.size()-1].getX() << " " <<  p_above[p_above.size()-1].getY();
     return p_above;
 
 
@@ -277,14 +348,14 @@ void PlaceGWHP::drawTemperaturAnomalyComplex(DM::Node p, double l1, double l2, d
 
 
     if (l1 < 1 || l2 < 1 || b < 1 ) {
-        
+
         std::cout << "Warning l1 or l2 or b is zero" << std::endl;
     }
     double l = l1+l2;
-    double spliter = 40;
+    double spliter = 9;
     std::vector<Node*> p_above;
     std::vector<Node*> p_above_side;
-    
+
     for (double i = 1; i <= T; i++) {
         ap::real_1d_array x_x;
         ap::real_1d_array x_y;
@@ -302,23 +373,23 @@ void PlaceGWHP::drawTemperaturAnomalyComplex(DM::Node p, double l1, double l2, d
         x_y(3) = (i/T)*b/2.;
         x_x(4) = (i/T)*l;
         x_y(4) = 0;
-        
+
         spline1dbuildcubic(x_x, x_y, n, 0, double(1), 0, double(0), x);
         for (double j =0; j < (i/T)*l+0.00001; j +=(i/T)*l/spliter) {
             double l_y = spline1dcalc(x, j);
             Node * n1 = sys->addNode(j+p.getX()-(i/T)*l2, l_y+p.getY(), 0);
             p_above.push_back(n1);
-            
+
             Node * n2 = sys->addNode(j+p.getX()-(i/T)*l2, p.getY()-l_y, 0);
             p_above_side.push_back(n2);
 
         }
-        
+
     }
-    
+
     Node * n1 = sys->addNode(p.getX(), p.getY(), 0);
     p_above.push_back(n1);
-    
+
     Node * n2 = sys->addNode(p.getX(), p.getY(), 0);
     p_above_side.push_back(n2);
 
@@ -340,14 +411,14 @@ void PlaceGWHP::drawTemperaturAnomalyComplex(DM::Node p, double l1, double l2, d
             f_above_side.push_back(p_above_side[j+i*spliter+1]);
             f_above_side.push_back(p_above_side[j+i*spliter]);
             f_above_side.push_back(p_above_side[j+(i+1)*spliter]);
-            
+
             Face * f1 = sys->addFace(f_above,v);
             f1->addAttribute("T", T-i);
             Face * f2 = sys->addFace(f_above_side,v);
             f2->addAttribute("T", T-i);
         }
     }
-    
+
     for ( int j = 0; j < spliter-1;  j++) {
         int i = 0;
         std::vector<DM::Node*> f_above;
@@ -367,5 +438,5 @@ void PlaceGWHP::drawTemperaturAnomalyComplex(DM::Node p, double l1, double l2, d
         Face * f2 = sys->addFace(f_above_side,v);
         f2->addAttribute("T", T-i);
     }
-    
+
 }

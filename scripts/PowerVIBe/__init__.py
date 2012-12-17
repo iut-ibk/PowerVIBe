@@ -31,3 +31,4 @@ from groundsourceheatpumps import *
 from testcomponent import *
 from importDAE import *
 from mboxanalysis import *
+from simpleheatingdemand import *

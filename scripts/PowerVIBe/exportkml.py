@@ -29,6 +29,8 @@ class ExportKML(Module):
         self.Filename = ""
         self.createParameter("Type", STRING, "Type")
         self.Type = "COMPONENT"
+        self.createParameter("ExtrudAttr", STRING, "")
+        self.ExtrudAttr = ""
         self.buildings = View("dummy", SUBSYSTEM, READ)
         self.createParameter("EPSG",INT, "EPSG")
         self.EPSG = 31257
@@ -61,11 +63,15 @@ class ExportKML(Module):
     
     def createPlacemarkForSelection(self, cmp, uuid, center, fld):
         
+        #geomtryLinks =  cmp.getAttribute("Geometry").getLinks()
+        
+        #for link in geomtryLinks:
+        #    link.
         l = cmp.getAttribute("l_bounding").getDouble()
         b = cmp.getAttribute("b_bounding").getDouble()
         h = cmp.getAttribute("h_bounding").getDouble()
         alpha = cmp.getAttribute("alpha_bounding").getDouble()
-        
+ 
         nodes = []
         nodes.append(Node(l/2, -b/2, h))
         nodes.append(Node(l/2, b/2, h))
@@ -75,6 +81,7 @@ class ExportKML(Module):
         
         nodes = self.rotatePolygon(nodes, alpha)
         nodes = self.translatePolygon(nodes, center)
+        
         nodes_transformed = []
         exdata = KML.ExtendedData()
         attributes = cmp.getAllAttributes()
@@ -164,7 +171,8 @@ class ExportKML(Module):
             for n in nodes_transformed:
                 coordinates+="{0},{1},{2}".format(n.getX(), n.getY(), n.getZ())+"\n"
             
-            
+
+                
             pm = KML.Placemark(
                                KML.name(obj),
                                KML.styleUrl("#transYellowPoly"),
@@ -191,24 +199,43 @@ class ExportKML(Module):
                 for n in p_nodes:
                         nodes_transformed.append(self.transformCoorindate(n))
                 coordinates =  ''
+                z = 0
+                if self.ExtrudAttr != "":
+                    z = f.getAttribute(self.ExtrudAttr).getDouble()
                 for n in nodes_transformed:
-                    coordinates+="{0},{1},{2}".format(n.getX(), n.getY(), n.getZ())+"\n"
-                                                       
-                pm = KML.Placemark(
-                            KML.name(obj),
-                            KML.styleUrl("#transYellowPoly"),                            
-                            KML.Polygon(
-                            KML.outerBoundaryIs(
-                                    KML.LinearRing(
-                                           KML.altitudeMode("clampToGround"),                                           
-                                           KML.coordinates(coordinates),
-                                           ),
-                                         ),
-                            ),
-                
-                )
-                fld.append(pm)
+                    coordinates+="{0},{1},{2}".format(n.getX(), n.getY(), z)+"\n"
+                if self.ExtrudAttr == "":
+                    pm = KML.Placemark(
+                                KML.name(obj),
+                                KML.styleUrl("#transYellowPoly"),                            
+                                KML.Polygon(
+                                KML.outerBoundaryIs(
+                                        KML.LinearRing(
+                                               KML.altitudeMode("clampToGround"),                                           
+                                               KML.coordinates(coordinates),
+                                               ),
+                                             ),
+                                ),
+                    
+                    )
+                    fld.append(pm)
+                if self.ExtrudAttr != "":
+                    pm = KML.Placemark(
+                           KML.name(obj),
+                           KML.styleUrl("#transRedPoly"),
+                           KML.Polygon(
+                                       KML.extrude(1),
+                                       KML.altitudeMode("relativeToGround"),
+                                       KML.outerBoundaryIs(
+                                                            KML.LinearRing(
 
+                                                                            KML.coordinates(coordinates),
+                                                                           ),
+                                                            ),
+                                        ),
+                               
+                            )
+                    fld.append(pm)
 
     def transformCoorindate(self, n):
         x = n.getX()
