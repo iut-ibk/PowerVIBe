@@ -39,6 +39,7 @@ CreateSingleFamilyHouses::CreateSingleFamilyHouses()
     parcels = DM::View("PARCEL", DM::FACE, DM::READ);
     parcels.addAttribute("is_built");
 
+    parcels.getAttribute("released");
     parcels.getAttribute("centroid_x");
     parcels.getAttribute("centroid_y");
 

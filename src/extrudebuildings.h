@@ -35,9 +35,11 @@ class ExtrudeBuildings : public DM::Module
 private:
     DM::View houses;
     DM::View building_model;
-    DM::View footprint;
+    DM::View footprints;
     DM::View parcels;
     DM::View cityView;
+
+    double minArea;
 
     double heatingT;
     double coolingT;

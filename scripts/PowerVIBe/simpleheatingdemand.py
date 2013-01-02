@@ -32,8 +32,8 @@ class SimpleHeatingDemand(Module):
     def run(self):
         print "HUHHU"
         city = self.getData("city")
-        heating_demands = [(1980., 75.),
-                           (1990., 50.),
+        heating_demands = [(1970., 75.),
+                           (1980., 50.),
                            (2000., 40.),
                            (2010., 15.),]
         building_uuids = city.getUUIDs(self.buildings)
@@ -46,9 +46,11 @@ class SimpleHeatingDemand(Module):
             area = building.getAttribute("gross_floor_area").getDouble()
             peak_demand = heating_demands[0][1]
             for hds in heating_demands:
-                if hds < built_year:
+                if hds[0] > built_year:
                     break
                 peak_demand = hds[1]
+                
+            print built_year, peak_demand
             anual =  peak_demand * area*1800.
             peak =  peak_demand * area
             building.addAttribute("dayly_peak_heating_demand", peak)

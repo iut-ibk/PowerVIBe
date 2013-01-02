@@ -7,17 +7,17 @@
  * This file is part of PowerVIBe
  *
  * Copyright (C) 2012  Christian Urich
- 
+
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
  * of the License, or (at your option) any later version.
- 
+
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- 
+
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
@@ -30,6 +30,7 @@
 #include <tbvectordata.h>
 #include <cgalgeometry.h>
 #include <QPolygonF>
+#include <fstream>
 #include <omp.h>
 
 #include "alglib/src/spline1d.h"
@@ -43,58 +44,131 @@ PlaceGWHP::PlaceGWHP():
     buildings.getAttribute("monthly_peak_heating_demand");
     buildings.getAttribute("anual_heating_demand");
     buildings.addAttribute("geothermal_energy");
-    
+    buildings.getAttribute("place_gwhp");
+
 
     parcels = DM::View("PARCEL", DM::FACE, DM::READ);
     parcels.getAttribute("I_ground_water");
     parcels.getAttribute("kf");
     parcels.getAttribute("kfhTokfh");
     parcels.getAttribute("BUILDING");
-    
+
     ghwps = DM::View("GWHP", DM::COMPONENT, DM::WRITE);
     ghwps.addAttribute("Q");
-    
+
     ghwps.addLinks("BUILDING", buildings);
     buildings.addLinks("GWHP", ghwps);
 
     thermal_effected_area = DM::View("thermal_effected_area", DM::FACE, DM::WRITE);
     thermal_effected_area.addAttribute("T");
 
+    city_view = DM::View("CITY", DM::COMPONENT, DM::READ);
+    city_view.addAttribute("total_anual_heating_demand");
+    city_view.addAttribute("total_anual_heating_demand_gwhp");
+    //thermal_effected_area.addAttribute("b_id");
+    //thermal_effected_area.addAttribute("counter");
+
+    this->reportFile = "";
+
     std::vector<DM::View> data;
     data.push_back(buildings);
     data.push_back(parcels);
     data.push_back(ghwps);
     data.push_back(thermal_effected_area);
+    data.push_back(city_view);
     database_location = "";
+    this->deepWell = false;
+    this->withCenterBuilding = false;
+    this->addParameter("ReportFile", DM::STRING, &this->reportFile);
+
     this->addParameter("GWHP_Database", DM::FILENAME, &this->database_location);
-    
+
+    this->addParameter("DeepWell", DM::BOOL, &this->deepWell);
+
+    this->addParameter("CenterBuilding", DM::BOOL, &this->withCenterBuilding);
+
+
     this->addData("City", data);
-    
+
+}
+
+void PlaceGWHP::createReport(DM::System * city) {
+    double heating_tot = 0;
+    double gwhp_tot = 0;
+    int gwhp = 0;
+    std::vector<std::string> building_uuids = city->getUUIDs(buildings);
+    foreach (std::string building_uuid, building_uuids) {
+        DM::Component * building = city->getComponent(building_uuid);
+        heating_tot+=building->getAttribute("anual_heating_demand")->getDouble();
+        std::vector<LinkAttribute> links_ghwp = building->getAttribute("GHWP")->getLinks();
+        foreach (LinkAttribute l,links_ghwp ) {
+            gwhp++;
+            gwhp_tot += building->getAttribute("anual_heating_demand")->getDouble();
+        }
+    }
+
+
+    std::vector<std::string> uuids = city->getUUIDs(DM::View("CITY", DM::COMPONENT, DM::READ));
+    double year = 0;
+    DM::Component * c;
+    if (uuids.size() != 0) {
+        year = city->getComponent(uuids[0])->getAttribute("year")->getDouble();
+        c = city->getComponent(uuids[0]);
+    }
+    c->addAttribute("total_anual_heating_demand", heating_tot);
+    c->addAttribute("total_anual_heating_demand_gwhp", gwhp_tot);
+
+
+    if (this->reportFile.empty())
+        return;
+    ofstream rf;
+    rf.open (this->reportFile,ios::app );
+
+
+
+
+
+
+    rf << year << "\t";
+    rf << building_uuids.size() << "\t";
+    rf <<heating_tot << "\t";
+    rf <<gwhp << "\t";
+    rf <<gwhp_tot << "\t";
+    rf <<gwhp_tot/heating_tot << "\t";
+    rf << "\n";
+
+
+
+    rf.close();
 }
 
 void PlaceGWHP::run()
 {
-    
+
     ThermalRegenerationDB TRDatabase(database_location);
-    
+
     DM::System * city = this->getData("City");
-    
+
     //Caluclate Water Demand For every building
     std::vector<std::string> building_uuids = city->getUUIDs(buildings);
-    
+
     int TotalNumberOfBuildings = building_uuids.size();
     int counterDone = 0;
     foreach (std::string building_uuid, building_uuids) {
-        Logger(Debug) << "Start" << counterDone++ << "Total" << TotalNumberOfBuildings;
+        counterDone++;
+        Logger(Debug) << "Start" << counterDone << "Total" << TotalNumberOfBuildings;
         DM::Component * building = city->getComponent(building_uuid);
-        
+        if (building->getAttribute("place_gwhp")->getDouble() < 0.01)
+            continue;
+        DM::Node bcenter (building->getAttribute("centroid_x")->getDouble(), building->getAttribute("centroid_y")->getDouble(), 0);
+
         //GetParcel
         LinkAttribute lp = building->getAttribute("PARCEL")->getLink();
         if (lp.uuid.empty()) {
             Logger(Warning) << "Building not linked can't create GWHP";
             continue;
         }
-        
+
         Face * parcel = city->getFace(lp.uuid);
 
         double heatingDemand = building->getAttribute("monthly_peak_heating_demand")->getDouble();
@@ -126,7 +200,26 @@ void PlaceGWHP::run()
         if (!parcel_offset)
             continue;
 
-        std::vector<DM::Node> possibleNodes = TBVectorData::CreateRaster(&sys_tmp, parcel_offset,5.0);
+        std::vector<DM::Node> possibleNodes_tmp = TBVectorData::CreateRaster(&sys_tmp, parcel_offset,5.0);
+
+
+        //Remove possibel nodes within distance
+        std::vector<DM::Node> possibleNodes;
+        if (!withCenterBuilding) {
+
+            foreach (DM::Node n , possibleNodes_tmp) {
+                if (TBVectorData::calculateDistance(&bcenter, &n)>20)
+                    continue;
+                possibleNodes.push_back(n);
+            }
+        }
+        else {
+            for (int i = -10; i < 11; i++) {
+                for (int j = -10; j < 11; j++){
+                    possibleNodes.push_back(Node(bcenter.getX()+2.5*j, bcenter.getY()+2.5*i, 0));
+                }
+            }
+        }
 
         //Randomize Nodes
         for (unsigned int i = 0; i < possibleNodes.size(); i++) {
@@ -146,11 +239,13 @@ void PlaceGWHP::run()
 
 
         DM::Node ressNode;
-        if (!this->checkThermalEffectedAreas(city, thermalNodes, possibleNodes, ressNode, parcel, 5, ghwp.getAttribute("L")->getDouble(), ghwp.getAttribute("B")->getDouble()))
-            continue;
-
-
-
+        if (!withCenterBuilding) {
+            if (!this->checkThermalEffectedAreas(city, thermalNodes, possibleNodes, ressNode, parcel, 5, ghwp.getAttribute("L")->getDouble(), ghwp.getAttribute("B")->getDouble(), d))
+                continue;
+        } else {
+            if (!this->checkThermalEffectedAreas(city, thermalNodes, possibleNodes, ressNode, city->getFace(building->getAttribute("Footprint")->getLink().uuid), 5, ghwp.getAttribute("L")->getDouble(), ghwp.getAttribute("B")->getDouble(), d))
+                continue;
+        }
         DM::Component * g = city->addComponent(new Component(ghwp), ghwps);
 
         g->getAttribute("BUILDING")->setLink("BUILDING", building->getUUID());
@@ -168,13 +263,36 @@ void PlaceGWHP::run()
 
         thermnodessize = thermnodessize;
         DM::Face * tf = city->addFace(nodes_t, this->thermal_effected_area);
+
+        QPolygonF p = TBVectorData::FaceAsQPolgonF(city, tf);
+
+        QRectF p_rect = p.boundingRect();
+
+        double X1 = p_rect.bottomLeft().x();
+        double X2 = p_rect.bottomRight().x();
+
+        double Y2 = p_rect.bottomLeft().y() ;
+        double Y1 = p_rect.topRight().y();
+
+        tf->addAttribute("X1", X1);
+        tf->addAttribute("Y1", Y1);
+        tf->addAttribute("X2", X2);
+        tf->addAttribute("Y2", Y2);
+
+        Logger(Debug ) << "PLACE " << counterDone;
+        Logger(Debug ) << X1 << " " << Y1 << " " << X2 << " " << Y2;
+
         std::vector<double> Color;
         Color.push_back(0);
         Color.push_back(0);
         Color.push_back(1);
         tf->getAttribute("color")->setDoubleVector(Color);
+
+        thermalFields.push_back(tf);
         building->addAttribute("geothermal_energy", building->getAttribute("anual_heating_demand")->getDouble());
+        building->addAttribute("place_gwhp", 0);
     }
+    createReport(city);
 
 }
 
@@ -193,85 +311,123 @@ double PlaceGWHP::calculateWaterAmount(double demandHeating, double deltaT)
     return A/(cvw*deltaT);
 }
 
-bool PlaceGWHP::checkThermalEffectedAreas(System *sys, const std::vector<DM::Node > & nodes, const std::vector<DM::Node > & possible_nodes, DM::Node & ressNode, DM::Face * parcel, double l1, double l2, double b)
+bool PlaceGWHP::checkThermalEffectedAreas(System *sys, const std::vector<DM::Node > & nodes, const std::vector<DM::Node > & possible_nodes, DM::Node & ressNode, DM::Face * parcel, double l1, double l2, double b, double hydrauliceffected)
 {
 
-    //Create Rectangle that needs to be intersected
+    //Find Poosible Intersections
     QPolygonF p = TBVectorData::FaceAsQPolgonF(sys, parcel);
 
     QRectF p_rect = p.boundingRect();
 
-    std::vector<DM::Node*> intersectionRect;
-    double x1 = p_rect.bottomLeft().x() - l1;
-    double x2 = p_rect.bottomRight().x() + l2+l1;
+    double x1 = p_rect.bottomLeft().x() - l1 - hydrauliceffected-50;
+    double x2 = p_rect.bottomRight().x() + l2+l1+50;
 
-    double y1 = p_rect.bottomLeft().y() -2*b;
-    double y2 = p_rect.topRight().y() +2*b;
+    double y1 = p_rect.topRight().y() -b-50;
+    double y2 = p_rect.bottomLeft().y() + b+50;
 
-
-    DM::Node n1(x1,y1,0);
-    DM::Node n2(x2,y1,0);
-    DM::Node n3(x2,y2,0);
-    DM::Node n4(x1,y2,0);
-
-
-    intersectionRect.push_back(&n1);
-    intersectionRect.push_back(&n2);
-    intersectionRect.push_back(&n3);
-    intersectionRect.push_back(&n4);
-    intersectionRect.push_back(&n1);
 
     std::vector<std::vector<DM::Node* > > nodelists;
-    std::vector<std::string> uuids = sys->getUUIDs(this->thermal_effected_area) ;
-    #pragma omp parallel for
-    for (unsigned int i = 0; i < uuids.size(); i++) {
-        std::string uuid = uuids[i];
-        DM::Face * f = sys->getFace(uuid);
+
+    //#pragma omp parallel for
+    for (unsigned int i = 0; i < thermalFields.size(); i++) {
+
+        DM::Face * f = thermalFields[i];
+        //Logger(Debug) << f->getAttribute("counter")->getDouble();
+        if (f->getAttribute("X2")->getDouble() < x1) {
+            //Logger(Debug) << "X2" <<f->getAttribute("X2")->getDouble() << " " << x1;
+            continue;
+        }
+        if (f->getAttribute("Y2")->getDouble() < y1){
+            //Logger(Debug) << "Y2" <<f->getAttribute("Y2")->getDouble() << " " << y1;
+
+            continue;
+        }
+        if (f->getAttribute("X1")->getDouble() > x2){
+            //Logger(Debug) << "X1" <<f->getAttribute("X1")->getDouble() << " " << x2;
+            continue;
+        }
+        if (f->getAttribute("Y1")->getDouble() > y2){
+            //Logger(Debug) << "Y1" <<f->getAttribute("Y1")->getDouble() << " " << y2;
+            continue;
+        }
         std::vector<DM::Node* > nodelist = TBVectorData::getNodeListFromFace(sys, f);
-        if (CGALGeometry::DoFacesInterect(intersectionRect,nodelist ))
-            nodelists.push_back(nodelist);
+        //Logger(Debug) << f->getAttribute("counter")->getDouble();
+        nodelists.push_back(nodelist);
+
     }
-    Logger(Debug) << "Total " << uuids.size() << "check " << nodelists.size();
+    //Logger(Debug) << "Total " << thermalFields.size() << "check " << nodelists.size();
     std::vector<DM::Node*> nodesToCheck;
+
     foreach (DM::Node n, nodes) {
         nodesToCheck.push_back(new DM::Node(n.getX(), n.getY(), n.getZ()));
     }
     nodesToCheck.push_back(nodesToCheck[0]);
 
+
+    std::vector<DM::Node> hydraulicEffected_ref;
+    hydraulicEffected_ref.push_back(DM::Node(-hydrauliceffected/2.-hydrauliceffected, -hydrauliceffected/2,0));
+    hydraulicEffected_ref.push_back(DM::Node(hydrauliceffected/2.-hydrauliceffected, -hydrauliceffected/2,0));
+    hydraulicEffected_ref.push_back(DM::Node(hydrauliceffected/2.-hydrauliceffected, hydrauliceffected/2,0));
+    hydraulicEffected_ref.push_back(DM::Node(-hydrauliceffected/2.-hydrauliceffected, hydrauliceffected/2,0));
+
+    std::vector<DM::Node*> hydraulicEffected;
+    for (int i = 0; i < 4; i++)
+        hydraulicEffected.push_back(new DM::Node(0, 0, 0));
+    hydraulicEffected.push_back(hydraulicEffected[0]);
+
+
     int nodeID = -1;
     //#pragma omp parallel for
+
     for (unsigned int j = 0; j < possible_nodes.size(); j++) {
+
+
 
         if (nodeID != -1) continue;
 
         DM::Node n_ref = possible_nodes[j];
-        for (unsigned int i = 0; i < nodes.size(); i++) {
+        for (unsigned int i = 0; i < nodes.size()-1; i++) {
             DM::Node * n = nodesToCheck[i];
             n->setX( nodes[i].getX() +  n_ref.getX() );
             n->setY( nodes[i].getY() +  n_ref.getY() );
         }
-        DM::Node * n = nodesToCheck[nodesToCheck.size()-1];
-        n->setX(nodesToCheck[0]->getX());
-        n->setY(nodesToCheck[0]->getY());
+        for (unsigned int i = 0; i < hydraulicEffected_ref.size(); i++) {
+            hydraulicEffected[i]->setX(hydraulicEffected_ref[i].getX() +  n_ref.getX());
+            hydraulicEffected[i]->setY(hydraulicEffected_ref[i].getY() +  n_ref.getY());
+        }
 
         bool tmp_intersect = false;
         for (unsigned int i = 0; i < nodelists.size(); i++) {
-            if (CGALGeometry::DoFacesInterect(nodelists[i],nodesToCheck )) {
+            //Logger(Debug) <<  "Regfield";
+            if ( CGALGeometry::DoFacesInterect(nodelists[i],nodesToCheck ))  {
                 tmp_intersect = true;
                 break;
             }
+            if (deepWell)
+                continue;
+            //Logger(Debug) << " Hydraulic Effected";
+            if ( CGALGeometry::DoFacesInterect(nodelists[i],hydraulicEffected ) ) {
+                tmp_intersect = true;
+                break;
+            }
+
+
         }
         if (tmp_intersect)
             continue;
 
-        if (nodeID == -1)
+        if (nodeID == -1) {
             nodeID = j;
+            break;
+        }
 
     }
+    Logger(Debug) << "Place at " << nodeID;
 
     for (unsigned int i = 0; i < nodesToCheck.size()-1; i++)
         delete nodesToCheck[i];
-
+    for (unsigned int i = 0; i < hydraulicEffected.size()-1; i++)
+        delete hydraulicEffected[i];
     if (nodeID != -1) {
         ressNode.setX(possible_nodes[nodeID].getX());
         ressNode.setY(possible_nodes[nodeID].getY());
@@ -293,7 +449,7 @@ std::vector<DM::Node> PlaceGWHP::drawTemperaturAnomalySimple(DM::Node p, double 
         return ress;
     }
     double l = l1+l2;
-    double spliter = 9;
+    double spliter = 4;
     std::vector<Node> p_above;
     std::vector<Node> p_above_side;
 
@@ -334,9 +490,6 @@ std::vector<DM::Node> PlaceGWHP::drawTemperaturAnomalySimple(DM::Node p, double 
     foreach (DM::Node n, p_above_side)
         p_above.push_back(n);
 
-
-    //DM::Logger(DM::Debug) << p_above[0].getX() << " " <<  p_above[0].getY();
-    //DM::Logger(DM::Debug) << p_above[p_above.size()-1].getX() << " " <<  p_above[p_above.size()-1].getY();
     return p_above;
 
 
@@ -352,7 +505,7 @@ void PlaceGWHP::drawTemperaturAnomalyComplex(DM::Node p, double l1, double l2, d
         std::cout << "Warning l1 or l2 or b is zero" << std::endl;
     }
     double l = l1+l2;
-    double spliter = 9;
+    double spliter = 4;
     std::vector<Node*> p_above;
     std::vector<Node*> p_above_side;
 

@@ -61,6 +61,7 @@ class HeatingCoolingTransmission(Module):
             for lpart in parts:
                     part = city.getFace(lpart.uuid)
                     area = TBVectorData_CalculateArea(city, part)
+                    
                     U = coefDB.getCoefficients(part.getAttribute("type").getString(), building.getAttribute("built_year").getDouble() , building.getAttribute("type").getString())                    
                     l = area*U
                     if part.getAttribute("type").getString() == "ceiling_cellar":

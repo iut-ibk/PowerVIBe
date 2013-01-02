@@ -43,8 +43,15 @@ class DM_HELPER_DLL_EXPORT PlaceGWHP : public Module
     DM::View parcels;
     DM::View ghwps;
     DM::View thermal_effected_area;
+    DM::View city_view;
     const double pi;
     std::string database_location;
+    std::vector<DM::Face*> thermalFields;
+
+    std::string reportFile;
+    bool deepWell;
+    bool withCenterBuilding;
+
     
 public:
     PlaceGWHP();
@@ -55,7 +62,8 @@ public:
     double calcuateHydraulicEffectedArea(double Q, double kf, double IG, double kfhTokfh);
     double calculateWaterAmount(double demandHeating, double deltaT);
 
-    bool checkThermalEffectedAreas(System *sys, const std::vector<DM::Node > & nodes, const std::vector<DM::Node > & possible_nodes, DM::Node & ressNode, DM::Face * parcel, double l1, double l2, double b);
+    bool checkThermalEffectedAreas(System *sys, const std::vector<DM::Node > & nodes, const std::vector<DM::Node > & possible_nodes, DM::Node & ressNode, DM::Face * parcel, double l1, double l2, double b, double hydrauliceffected);
+    void createReport(System *city);
 };
 
 #endif /* defined(__DynaMind_ToolBox__placegwhp__) */

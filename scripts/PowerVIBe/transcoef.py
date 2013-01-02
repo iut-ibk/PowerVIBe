@@ -31,6 +31,7 @@ from numpy import genfromtxt
 class HeatCoefficients:
     def __init__(self, filename):
         self.db = genfromtxt(filename, dtype=None, delimiter=',',names=True)
+        #print self.db
         self.typeList = ["ceiling_cellar", "ceiling_floor", "wall_outside", "ceiling_roof", "front_door", "window"]
     def buildingPeriode(self, periods, year_built):
         #print periods

@@ -17,12 +17,15 @@ ExtrudeBuildings::ExtrudeBuildings()
 {
     heatingT = 20;
     coolingT = 20;
+    minArea = 75;
 
     withWindows = false;
 
     this->addParameter("T_heating", DM::DOUBLE, &heatingT);
     this->addParameter("T_cooling", DM::DOUBLE, &coolingT);
     this->addParameter("withWindows", DM::BOOL, &withWindows);
+
+    this->addParameter("minArea", DM::DOUBLE, &minArea);
 
     cityView = DM::View("CITY", DM::FACE, DM::READ);
     cityView.getAttribute("year");
@@ -65,9 +68,9 @@ ExtrudeBuildings::ExtrudeBuildings()
     houses.addAttribute("Geometry");
     houses.addAttribute("V_living");
 
-    footprint = DM::View("Footprint", DM::FACE, DM::READ);
-    footprint.getAttribute("stories");
-    footprint.getAttribute("PARCEL");
+    footprints = DM::View("Footprint", DM::FACE, DM::READ);
+    footprints.getAttribute("stories");
+    footprints.getAttribute("PARCEL");
 
     building_model = DM::View("Geometry", DM::FACE, DM::WRITE);
     building_model.addAttribute("type");
@@ -78,7 +81,7 @@ ExtrudeBuildings::ExtrudeBuildings()
     std::vector<DM::View> data;
     data.push_back(houses);
     data.push_back(parcels);
-    data.push_back(footprint);
+    data.push_back(footprints);
     data.push_back(building_model);
     data.push_back(cityView);
     this->addData("City", data);
@@ -93,17 +96,18 @@ void ExtrudeBuildings::run()
     int buildyear = 1980;
 
 
-    std::vector<std::string> footprintUUIDs = city->getUUIDs(this->footprint);
+    std::vector<std::string> footprintUUIDs = city->getUUIDs(this->footprints);
 
     int nfootprints = footprintUUIDs.size();
     int numberOfHouseBuild = 0;
-#pragma omp parallel for
+//#pragma omp parallel for
     for (int i = 0; i < nfootprints; i++) {
         DM::Face * footprint = city->getFace(footprintUUIDs[i]);
         int stories =  (int) footprint->getAttribute("stories")->getDouble();
 
         std::vector<DM::Node * > nodes  = TBVectorData::getNodeListFromFace(city, footprint);
-
+        if (TBVectorData::CalculateArea(nodes) < this->minArea)
+            continue;
         if (!CGALGeometry::CheckOrientation(nodes))
         {
             std::reverse(nodes.begin(), nodes.end());
@@ -156,6 +160,7 @@ void ExtrudeBuildings::run()
 
         building->addAttribute("T_heating", heatingT);
         building->addAttribute("T_cooling", coolingT);
+       // building->addAttribute("b_id", footprint->getAttribute("b_id")->getDouble());
 
 
         building->addAttribute("V_living", TBVectorData::CalculateArea(nodes)*stories * 3);
@@ -168,7 +173,7 @@ void ExtrudeBuildings::run()
             DM::Component * parcel = city->getComponent( link.uuid);
             parcel->getAttribute("BUILDING")->setLink("BUILDING", building->getUUID());
         }
-
+        building->getAttribute("Footprint")->setLink(this->footprints.getName(), footprint->getUUID());
         //Create Links
         //building->getAttribute("PARCEL")->setLink(parcels.getName(), parcel->getUUID());
         //parcel->getAttribute("BUILDING")->setLink(houses.getName(), building->getUUID());

@@ -93,13 +93,13 @@ class GroundSourceHeatPumpSystems(Module):
                  (117.5, 0.00)]
                  
     def interpolationSonde(self, x):
-        
+        if x > 95:
+            return 0
         sondenDeltaT= self.singelDeltaT
         s_0 = (0,0)
         s_1 = (0,0)
         
-        if x > 95:
-            return 0
+
         for i in range(1, len(sondenDeltaT) ):
             if sondenDeltaT[i][0] > x:
                 s_0 = sondenDeltaT[i-1]
@@ -121,45 +121,76 @@ class GroundSourceHeatPumpSystems(Module):
                 if d < self.min_distance:
                     return False
         return True
+    def sonden_in_reach(self, sonden_tot,  center, l, b, alpha):
+        X1 =  (l) * cos(alpha) - (b) * sin(alpha) + center.getX() - 100       
+        Y1 =  (l) * sin(alpha) + (b) * cos(alpha) + center.getY() - 100
+        
+        X2 =  (l) * cos(alpha) - (b) * sin(alpha) + center.getX() + 100       
+        Y2 =  (l) * sin(alpha) + (b) * cos(alpha) + center.getY() + 100 
+
+        sinr = []
+        for s in sonden_tot:
+            if X1 > s.getX():
+                continue
+            if Y1 > s.getY():
+                continue
+            if X2 < s.getX():
+                continue
+            if Y2 < s.getY():
+                continue
+            sinr.append(s)
+        return sinr
+
     def poosibleConfigurations(self, sonden_tot, length, T_mean_ground, center, l, b, alpha, average_w_m):
         from_parcel = 4
         distances = [5,7.5, 10,20,30]
         results = []
         results_recs = []
+        sir = self.sonden_in_reach( sonden_tot, center, l, b,alpha )
+        print len(sir)
+
+     
         for d in distances:
+            
             X = int((l-2*from_parcel)/d+1)
             Y = int((b-2*from_parcel)/d+1)
+            
+            if X > 10:
+                X = 10
+            if Y > 10:
+                Y = 10
+            print "check configuratins for distance " ,d, X, Y
             if X < 0 or Y < 0:
                 print "failed"
                 return [],[]
             #single
             rec_s = self.transformNodes(self.rectangular(1,1,10), center, alpha)
-            if self.checkNeigbours(sonden_tot, rec_s) == False:
+            if self.checkNeigbours(sir, rec_s) == False:
                 continue
             results_recs.append(rec_s)
-            results.append(self.calulcateAverageDeltaT(sonden_tot, rec_s, average_w_m))
+            results.append(self.calulcateAverageDeltaT(sir, rec_s, average_w_m))
             #lines
             for x in range(1,X+1):                
                 rec_s = self.transformNodes(self.rectangular(x,1,d), center, alpha)
-                if self.checkNeigbours(sonden_tot, rec_s) == False:
+                if self.checkNeigbours(sir, rec_s) == False:
                     continue
                 results_recs.append(rec_s)
-                results.append(self.calulcateAverageDeltaT(sonden_tot, rec_s, average_w_m))
+                results.append(self.calulcateAverageDeltaT(sir, rec_s, average_w_m))
 
             for y in range(1,Y+1):
                 rec_s = self.transformNodes(self.rectangular(1,y,d), center, alpha)
-                if self.checkNeigbours(sonden_tot, rec_s) == False:
+                if self.checkNeigbours(sir, rec_s) == False:
                     continue
                 results_recs.append(rec_s)
-                results.append(self.calulcateAverageDeltaT(sonden_tot, rec_s, average_w_m))
+                results.append(self.calulcateAverageDeltaT(sir, rec_s, average_w_m))
             #Squares
             for x in range(1,X+1):
                 for y in range(1,Y+1):     
                     rec_s = self.transformNodes(self.rectangular(x,y,d), center, alpha)
-                    if self.checkNeigbours(sonden_tot, rec_s) == False:
+                    if self.checkNeigbours(sir, rec_s) == False:
                         continue
                     results_recs.append(rec_s)
-                    results.append(self.calulcateAverageDeltaT(sonden_tot, rec_s, average_w_m))
+                    results.append(self.calulcateAverageDeltaT(sir, rec_s, average_w_m))
                     
 
         con = -1
@@ -174,7 +205,7 @@ class GroundSourceHeatPumpSystems(Module):
    
             
             #PossibleConfiguration
-            if (l_tot/n_s < 200 and l_tot/n_s > 50):
+            if (l_tot/n_s < 200 and l_tot/n_s > 50 and factor_total < 5):
                 if l_tot_min < 0 or l_tot_min > l_tot:
                     l_tot_min = l_tot
                     con = c
@@ -256,15 +287,18 @@ class GroundSourceHeatPumpSystems(Module):
         #for borehole_uuid in ex_borehole_uuids:
             #ex_boreholes.append(city.getNode(borehole_uuid))
         #mix vector
-        for r in range(len(building_uuid)):
-            sw_1 = randrange(len(building_uuid))
-            sw_2 = randrange(len(building_uuid)) 
+        for r in range(len(building_uuids)):
+            sw_1 = randrange(len(building_uuids))
+            sw_2 = randrange(len(building_uuids)) 
             uuid_sw1 = building_uuids[sw_1]
             uuid_sw2 = building_uuids[sw_2]
             building_uuids[sw_1] = uuid_sw2
             building_uuids[sw_2] = uuid_sw1
         
+        counter_done = 0
         for building_uuid in building_uuids:
+            counter_done+=1
+            print counter_done, len(building_uuids) 
             building = city.getComponent(building_uuid)
             hd_peak = building.getAttribute("dayly_peak_heating_demand").getDouble()
             hd_anual = building.getAttribute("anual_heating_demand").getDouble()
@@ -291,7 +325,8 @@ class GroundSourceHeatPumpSystems(Module):
             node_boundingbox =  pydmextensions.nodevector_obj()
             b_size = doublevector()
             angle = pydmextensions.CGALGeometry_CalculateMinBoundingBox(nodes_parcel, node_boundingbox, b_size) /180 * pi
-            center = TBVectorData_CaclulateCentroid(city, parcel)
+            #center = TBVectorData_CaclulateCentroid(city, parcel)
+            center = Node(building.getAttribute("centroid_x").getDouble(), building.getAttribute("centroid_y").getDouble(),0.0)
             #print str(b_size[0]) + " " +  str(b_size[1])
 
             #alpha = angle/180.*pi
@@ -310,7 +345,7 @@ class GroundSourceHeatPumpSystems(Module):
             new_boreholes = self.place_sonde(city, l_1, sonden, leistung, hd_anual,parcel)
             for b in new_boreholes:
                 ex_boreholes.append(b)
-        self.updateParcelFactors(city)
+        #self.updateParcelFactors(city)
         self.calculatePlacement(city)
 
             
