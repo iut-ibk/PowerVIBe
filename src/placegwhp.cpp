@@ -122,7 +122,7 @@ void PlaceGWHP::createReport(DM::System * city) {
     if (this->reportFile.empty())
         return;
     ofstream rf;
-    rf.open (this->reportFile,ios::app );
+    rf.open (this->reportFile.c_str(),ios::app );
 
 
 
