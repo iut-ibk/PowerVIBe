@@ -25,7 +25,7 @@ AdvancedParceling::AdvancedParceling()
 
     this->addParameter("AspectRatio", DM::DOUBLE, &aspectRatio);
     this->addParameter("Length", DM::DOUBLE, &length);
-    this->addParameter("offest", DM::DOUBLE, & offset);
+    this->addParameter("offset", DM::DOUBLE, & offset);
 
     InputViewName = "SUPERBLOCK";
     OutputViewName = "CITYBLOCK";
@@ -182,7 +182,7 @@ void AdvancedParceling::createSubdevision(DM::System * sys, DM::Face *f, int gen
 
 void AdvancedParceling::finalSubdevision(DM::System *sys, DM::Face *f, int gen)
 {
-    DM::Logger(DM::Debug) << "Start Final Subdevision";
+    //DM::Logger(DM::Debug) << "Start Final Subdevision";
     std::vector<DM::Node> box;
     std::vector<double> size;
     QPolygonF f_origin = TBVectorData::FaceAsQPolgonF(sys, f);
@@ -270,7 +270,7 @@ void AdvancedParceling::finalSubdevision(DM::System *sys, DM::Face *f, int gen)
 
     }
 
-    DM::Logger(DM::Debug) << "Done Final Subdevision";
+    //DM::Logger(DM::Debug) << "Done Final Subdevision";
 
 
 
