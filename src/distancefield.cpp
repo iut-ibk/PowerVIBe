@@ -6,8 +6,9 @@
 #include <list>
 #include <cmath>
 #include <tbvectordata.h>
+#ifdef _OPENMP
 #include <omp.h>
-
+#endif
 DM_DECLARE_NODE_NAME(DistanceField, SpatialOperations)
 DistanceField::DistanceField()
 {

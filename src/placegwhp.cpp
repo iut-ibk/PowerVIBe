@@ -31,7 +31,9 @@
 #include <cgalgeometry.h>
 #include <QPolygonF>
 #include <fstream>
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 
 #include "alglib/src/spline1d.h"
 DM_DECLARE_NODE_NAME(PlaceGWHP, PowerVIBe)

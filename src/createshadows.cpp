@@ -16,7 +16,9 @@
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <sunpos.h>
 #include <QDate>
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 
 #include <ogr_spatialref.h>
 #include <ogrsf_frmts.h>

@@ -7,7 +7,9 @@
 #include <dmhelper.h>
 #include <tbvectordata.h>
 #include <littlegeometryhelpers.h>
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 
 DM_DECLARE_NODE_NAME(CreateSingleFamilyHouses, BlockCity)
 
