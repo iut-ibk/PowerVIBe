@@ -111,7 +111,7 @@ void CreateSingleFamilyHouses::run()
 
     int nparcels = parcelUUIDs.size();
     int numberOfHouseBuild = 0;
-//#pragma omp parallel for
+
     for (int i = 0; i < nparcels; i++) {
         DM::Face * parcel = city->getFace(parcelUUIDs[i]);
 

@@ -263,7 +263,6 @@ void PlaceGWHP::run()
 
         int thermnodessize = thermalNodes.size();
 
-        thermnodessize = thermnodessize;
         DM::Face * tf = city->addFace(nodes_t, this->thermal_effected_area);
 
         QPolygonF p = TBVectorData::FaceAsQPolgonF(city, tf);
@@ -330,7 +329,7 @@ bool PlaceGWHP::checkThermalEffectedAreas(System *sys, const std::vector<DM::Nod
 
     std::vector<std::vector<DM::Node* > > nodelists;
 
-    //#pragma omp parallel for
+
     for (unsigned int i = 0; i < thermalFields.size(); i++) {
 
         DM::Face * f = thermalFields[i];
@@ -379,7 +378,7 @@ bool PlaceGWHP::checkThermalEffectedAreas(System *sys, const std::vector<DM::Nod
 
 
     int nodeID = -1;
-    //#pragma omp parallel for
+
 
     for (unsigned int j = 0; j < possible_nodes.size(); j++) {
 

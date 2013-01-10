@@ -102,7 +102,7 @@ void ExtrudeBuildings::run()
 
     int nfootprints = footprintUUIDs.size();
     int numberOfHouseBuild = 0;
-//#pragma omp parallel for
+
     for (int i = 0; i < nfootprints; i++) {
         DM::Face * footprint = city->getFace(footprintUUIDs[i]);
         int stories =  (int) footprint->getAttribute("stories")->getDouble();

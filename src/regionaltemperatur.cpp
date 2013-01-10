@@ -37,9 +37,6 @@ void RegionalTemperatur::run() {
         double t_first = 5;
         double t_second = 25;
 
-
-
-        int counter = 0;
         double kf = f->getAttribute("kf")->getDouble();
         double I = f->getAttribute("I_ground_water")->getDouble();
         double n = f->getAttribute("n")->getDouble();

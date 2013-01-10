@@ -324,7 +324,6 @@ void CreateShadows::run()
 
         date = startDate;
         int numberofCheckedIntersections = 0;
-        int numberOfCenters = nodeids.size();
         //Create Mesh
         //CreateNodes
         std::vector<DM::Node*> nodesToCheck;
