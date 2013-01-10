@@ -53,7 +53,6 @@ void AdvancedParceling::init()
         return;
 
     DM::View * InputView = sys->getViewDefinition(InputViewName);
-    //DM::View * OutputView = sys->getViewDefinition(OutputViewName);
 
     if (!InputView)
         return;
@@ -164,19 +163,11 @@ void AdvancedParceling::createSubdevision(DM::System * sys, DM::Face *f, int gen
         newFace.push_back(newFace[0]);
 
         DM::Face * f_new;
-        /*if (gen == 0)*/
-           f_new = sys->addFace(newFace);
-        //if (gen == 1) {
-            //f_new = sys->addFace(newFace, this->parcels);
-            /* foreach (DM::Node * n, newFace) {
-                DM::Logger(DM::Debug) << n->getX() << " " << n->getY();
-            }
+        f_new = sys->addFace(newFace);
 
-
-        }*/
         f_new->addAttribute("generation", gen);
-        //if (gen < 10)
-            this->createSubdevision(sys, f_new, gen+1);
+
+        this->createSubdevision(sys, f_new, gen+1);
     }
 }
 
