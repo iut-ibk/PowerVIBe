@@ -56,6 +56,7 @@ CreateSingleFamilyHouses::CreateSingleFamilyHouses()
     houses.addAttribute("stories_height");
 
     houses.addAttribute("floor_area");
+    houses.addAttribute("roof_area");
     houses.addAttribute("gross_floor_area");
 
     houses.addAttribute("centroid_x");
@@ -161,6 +162,7 @@ void CreateSingleFamilyHouses::run()
         building->addAttribute("stories_height",3 );
 
         building->addAttribute("floor_area", l*b);
+        building->addAttribute("roof_area", l*b);
         building->addAttribute("gross_floor_area", l * b * stories * 3);
 
         building->addAttribute("centroid_x", n.getX());
