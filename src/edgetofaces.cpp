@@ -27,6 +27,7 @@
 #include "edgetofaces.h"
 #include "cgalgeometry.h"
 #include "tbvectordata.h"
+#include <dmgeometry.h>
 
 DM_DECLARE_NODE_NAME(EdgeToFaces, Geometry)
 
@@ -65,12 +66,20 @@ void EdgeToFaces::run()
 
     std::vector<std::string> uuids = s.getUUIDs(newFace);
 
+
     foreach(std::string uuid, uuids) {
+        SpatialNodeHashMap spnh(sys, 1,false);
         DM::Face * f = s.getFace(uuid);
         std::vector<DM::Node*> nl_old = TBVectorData::getNodeListFromFace(&s, f);
         std::vector<DM::Node*> nl;
-        for  (int i = 0; i < nl_old.size()-1; i++)
-            nl.push_back(sys->addNode(new Node(*nl_old[i])));
+        for  (unsigned int i = 0; i < nl_old.size()-1; i++) {
+            if (spnh.findNode(nl_old[i]->getX(), nl_old[i]->getY(), 0.001)) {
+                Logger(Debug) << "Node exists already, not added";
+                continue;
+            }
+            DM::Node * n = spnh.addNode(nl_old[i]->getX(), nl_old[i]->getY(),nl_old[i]->getZ(), 0.001);
+            nl.push_back(n);
+        }
         nl.push_back(nl[0]);
         sys->addFace(nl, newFace);
     }
