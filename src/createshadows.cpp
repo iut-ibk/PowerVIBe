@@ -182,6 +182,9 @@ void CreateShadows::caclulateSunPositions(const QDate &start, const QDate &end, 
 void CreateShadows::run()
 {
 
+    std::vector<std::string> faces_not_to_checked;
+    faces_not_to_checked.push_back("ceiling");
+
     double T_LK[] = {2,2,2,3,3,4,4,4,4,3,2,2};
 
     DM::System * city = this->getData("city");
@@ -218,6 +221,15 @@ void CreateShadows::run()
     for (int i = 0; i < number_geos; i++) {
         std::string uuid = geom_uuids[i];
         DM::Face * f = city->getFace(uuid);
+        std::string face_type = f->getAttribute("type")->getString();
+        bool exclude = false;
+        foreach (std::string check, faces_not_to_checked) {
+            if (face_type == check)
+                exclude = true;
+        }
+        if (exclude)
+            continue;
+
         std::vector<DM::Node> tri = DM::CGALGeometry::FaceTriangulation(city, f);
         for(unsigned int i = 0; i < tri.size(); i +=3){
             std::vector<Point> points;
@@ -270,6 +282,14 @@ void CreateShadows::run()
         //DM::Logger(DM::Debug) << "Face " << uuid;
         //Create Face Point
         DM::Face * f = city->getFace(uuid);
+        std::string face_type = f->getAttribute("type")->getString();
+        bool exclude = false;
+        foreach (std::string check, faces_not_to_checked) {
+            if (face_type == check)
+                exclude = true;
+        }
+        if (exclude)
+            continue;
         //myfile << uuid << "\t" << f->getAttribute("type")->getString() << "\n";
         if (f->getAttribute("type")->getString() != "window" && this->onlyWindows)
             continue;
@@ -344,7 +364,7 @@ void CreateShadows::run()
         int newnumberOfCenters = nodesToCheck.size();
 
         //DM::Logger(DM::Debug) << numberOfCenters;
-        //DM::Logger(DM::Debug) << newnumberOfCenters;
+        DM::Logger(DM::Debug) << newnumberOfCenters;
         #pragma omp parallel for
         for (int c = 0; c < newnumberOfCenters; c++) {
             DM::Node * n1 =  nodesToCheck[c];
