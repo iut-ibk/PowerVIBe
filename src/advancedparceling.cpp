@@ -12,20 +12,21 @@ AdvancedParceling::AdvancedParceling()
     this->cityblocks = DM::View("CITYBLOCK", DM::FACE, DM::READ);
     this->cityblocks.getAttribute("new");
     this->parcels = DM::View("PARCEL", DM::FACE, DM::WRITE);
-
+    this->parcels.addAttribute("new");
     this->bbs = DM::View("BBS", DM::FACE, DM::WRITE);
     this->bbs.addAttribute("generation");
 
     this->parcels.addAttribute("generation");
-    this->cityblocks.getAttribute("new");
 
     aspectRatio = 2;
     length = 100;
     offset = 1;
+    remove_new = false;
 
     this->addParameter("AspectRatio", DM::DOUBLE, &aspectRatio);
     this->addParameter("Length", DM::DOUBLE, &length);
     this->addParameter("offset", DM::DOUBLE, & offset);
+    this->addParameter("remove_new", DM::BOOL, & remove_new);
 
     InputViewName = "SUPERBLOCK";
     OutputViewName = "CITYBLOCK";
@@ -57,8 +58,9 @@ void AdvancedParceling::init()
     if (!InputView)
         return;
     cityblocks = DM::View(InputView->getName(), InputView->getType(), DM::READ);
-
+    this->cityblocks.getAttribute("new");
     parcels = DM::View(OutputViewName, DM::FACE, DM::WRITE);
+    this->parcels.addAttribute("new");
     this->parcels.addAttribute("generation");
 
     std::vector<DM::View> datastream;
@@ -83,8 +85,20 @@ void AdvancedParceling::run(){
     //Here comes the action
     foreach (std::string uuid, block_uuids) {
         DM::Face *f  =city->getFace(uuid);
-        if (f->getAttribute("new")->getDouble() > 0.01)
+        if (f->getAttribute("new")->getDouble() > 0.01) {
             this->createSubdevision(city, f, 0);
+
+        }
+
+    }
+
+
+    if (!remove_new)
+        return;
+    foreach (std::string uuid, block_uuids) {
+        DM::Face *f  =city->getFace(uuid);
+
+        f->addAttribute("new", 0);
     }
 }
 

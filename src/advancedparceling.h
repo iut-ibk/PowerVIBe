@@ -15,6 +15,7 @@ private:
     double length;
     double offset;
 
+    bool remove_new;
     std::string InputViewName;
     std::string OutputViewName;
 
