@@ -31,14 +31,21 @@ class ExportKML(Module):
         self.Type = "COMPONENT"
         self.createParameter("ExtrudAttr", STRING, "")
         self.ExtrudAttr = ""
-        self.buildings = View("dummy", SUBSYSTEM, READ)
+        self.buildings = View("dummy", SUBSYSTEM, MODIFY)
         self.createParameter("EPSG",INT, "EPSG")
         self.EPSG = 31257
+        self.counter = 0;
         #self.models = View("Model_Building", FACE, READ)
         datastream = []
+
         datastream.append(self.buildings)
         self.addData("City", datastream)
+
+    """convert rgb to kml color"""
+    def rgb_to_hex(self, r,g,b,a):
+        return '#%02x%02x%02x%02x' % (a,b,g,r)
     
+
     def rotatePolygon(self, nodes, deg):
         nodes_rotated = []
         rad = deg /180. * math.pi
@@ -170,15 +177,17 @@ class ExportKML(Module):
             coordinates =  ''
             for n in nodes_transformed:
                 coordinates+="{0},{1},{2}".format(n.getX(), n.getY(), n.getZ())+"\n"
-            
-
-                
+            y = int(e.getAttribute("built_year").getDouble())
+            m = 1
+            d = 1      
+            if y < 0.01:
+                    continue
             pm = KML.Placemark(
                                KML.name(obj),
-                               KML.styleUrl("#transYellowPoly"),
-                                   KML.TimeStamp(
-                                      KML.when(e.getAttribute("date").getString()),
-                                                 ),
+                               KML.styleUrl("#SWMM"),
+                               KML.TimeStamp(
+                                   KML.when((date(y,m,d)).strftime('%Y-%m-%dT%H:%MZ')),
+                                    ),
                                         KML.LineString(
                                             KML.altitudeMode("relativeToGround"),
                                             KML.coordinates(coordinates),
@@ -204,10 +213,19 @@ class ExportKML(Module):
                     z = f.getAttribute(self.ExtrudAttr).getDouble()
                 for n in nodes_transformed:
                     coordinates+="{0},{1},{2}".format(n.getX(), n.getY(), z)+"\n"
+                y = int(f.getAttribute("built_year").getDouble())
+                #print y
+                m = 1
+                d = 1
+                if y < 0.01:
+                    continue
                 if self.ExtrudAttr == "":
                     pm = KML.Placemark(
                                 KML.name(obj),
-                                KML.styleUrl("#transYellowPoly"),                            
+                                KML.styleUrl(str("style_")+str(obj)),  
+                                KML.TimeStamp(
+                                   KML.when((date(y,m,d)).strftime('%Y-%m-%dT%H:%MZ')),
+                                ),                          
                                 KML.Polygon(
                                 KML.outerBoundaryIs(
                                         KML.LinearRing(
@@ -222,7 +240,10 @@ class ExportKML(Module):
                 if self.ExtrudAttr != "":
                     pm = KML.Placemark(
                            KML.name(obj),
-                           KML.styleUrl("#transRedPoly"),
+                           KML.styleUrl(str("style_")+str(obj)),
+                           KML.TimeStamp(
+                                   KML.when((date(y,m,d)).strftime('%Y-%m-%dT%H:%MZ')),
+                                ),     
                            KML.Polygon(
                                        KML.extrude(1),
                                        KML.altitudeMode("relativeToGround"),
@@ -364,36 +385,52 @@ class ExportKML(Module):
         fld.append(self.createPlacemark(uuid, "/tmp/exportdae"+ uuid + ".dae", center))
         mesh.write("/tmp/exportdae"+ uuid + ".dae")
         #objectid_total+=1
-
+    
+    def create_syles(self,city, object):
+        obj = city.getComponent(object)
+        
+        r = int( obj.getAttribute("color_r").getDouble() * 255.)
+        #print r
+        g = int( obj.getAttribute("color_g").getDouble() * 255.)
+        b = int( obj.getAttribute("color_b").getDouble() * 255.)
+        alpha = int( obj.getAttribute("color_alpha").getDouble() * 255.)
+        sty = KML.Style(
+            KML.LineStyle(
+                KML.width(0.5),
+            ),
+            KML.PolyStyle(
+                        KML.color(self.rgb_to_hex( r,g,b,alpha)),
+                        ),
+                        id="style_"+str(object),
+            )
+        return sty
+            
     def run(self):
+        self.counter = self.counter + 1
         self.origin = osr.SpatialReference ()
         self.origin.ImportFromEPSG(self.EPSG)
         stylename = "export_dm"
-        doc = KML.kml(
-            KML.Document(
-                KML.Name("DynaMind Export"),
-                KML.Style(
-                    KML.LineStyle(
-                        KML.width(1.5),
-                    ),
-                    KML.PolyStyle(
-                        KML.color("7d00ffff"),
-                    ),
-                    id="transYellowPoly",
-                ),
-                KML.Style(
-                      KML.LineStyle(
-                      KML.width(1.5),
-                      ),
-                                   KML.PolyStyle(
-                                                 KML.color("7d0000ff"),
-                                                 ),
-                                   id="transRedPoly",
-                                   )
-  
-            ) 
+        
+        doc = KML.kml()
+        document = KML.Document()
+        docname = KML.Name("DynaMind Export")
+        document.append(docname)
+        doc.append(document)
+        document.append(
+        KML.Style(
+            KML.LineStyle(
+                KML.width(3),
+                KML.color(self.rgb_to_hex( 0,255,255,255)),
+            ),
+            KML.PolyStyle(
+                        KML.color(self.rgb_to_hex( 0,255,255,255)),
+                        ),
+                        id="#SWMM",
+            )
         )
+        
         fld = KML.Folder()
+        
         
         city = self.getData("City")   
         uuids = city.getUUIDs(View(self.ViewName, COMPONENT, READ))
@@ -411,16 +448,16 @@ class ExportKML(Module):
                 LinkAttributes = building.getAttribute("Geometry").getLinks()
                 for attribute in LinkAttributes:
                     objects.append(attribute.uuid)
-                #self.createDAE_KML(city, uuid, objects, center,fld)
                 self.createPlacemarkForSelection(city.getComponent(uuid), uuid, center, fld)
             if self.Type == "FACE":
                     objects.append(uuid)        
-                    self.createPlacemarkAsLineRing(city, objects, fld)
+                    self.createPlacemarkAsLineRing(city, objects, fld)                    
+                    document.append(self.create_syles(city, uuid))
             if self.Type == "EDGE":
                     objects.append(uuid)
                     self.createPlacemarkAsLineString(city, objects, fld)
                 
         doc.Document.append(fld)
-        text_file = open(self.Filename+str(".kml"), "w")
+        text_file = open(self.Filename+"_"+str(self.counter)+str(".kml"), "w")
         text_file.write(etree.tostring(doc, pretty_print=True))
         text_file.close()
