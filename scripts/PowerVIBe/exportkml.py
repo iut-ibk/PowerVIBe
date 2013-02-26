@@ -94,9 +94,9 @@ class ExportKML(Module):
         attributes = cmp.getAllAttributes()
         for k in attributes:
             attr = attributes[k]
-            print attr.getType()
+            #print attr.getType()
             if attr.getType() == Attribute.DOUBLE:
-                print str(k) + " " + str(attr.getDouble())
+                #print str(k) + " " + str(attr.getDouble())
                 d = KML.Data(
                          KML.name(k),
                          KML.value(attr.getDouble()),
@@ -112,6 +112,8 @@ class ExportKML(Module):
     
         
         y = int(cmp.getAttribute("built_year").getDouble())
+        if y < 1:
+                y = 1900
         m = 1
         d = 1
         pm = KML.Placemark(
@@ -178,6 +180,8 @@ class ExportKML(Module):
             for n in nodes_transformed:
                 coordinates+="{0},{1},{2}".format(n.getX(), n.getY(), n.getZ())+"\n"
             y = int(e.getAttribute("built_year").getDouble())
+            if y < 1:
+                y = 1900
             m = 1
             d = 1      
             if y < 0.01:
@@ -217,8 +221,8 @@ class ExportKML(Module):
                 #print y
                 m = 1
                 d = 1
-                if y < 0.01:
-                    continue
+                if y < 1:
+                    y = 1900
                 if self.ExtrudAttr == "":
                     pm = KML.Placemark(
                                 KML.name(obj),
@@ -443,7 +447,6 @@ class ExportKML(Module):
             building = city.getComponent(uuid)
             objects = []
             if self.Type == "COMPONENT":
-                print "Component"
                 center = Node(building.getAttribute("centroid_x").getDouble(), building.getAttribute("centroid_y").getDouble(),0.0)
                 LinkAttributes = building.getAttribute("Geometry").getLinks()
                 for attribute in LinkAttributes:
