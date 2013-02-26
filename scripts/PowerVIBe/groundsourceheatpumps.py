@@ -320,6 +320,9 @@ class GroundSourceHeatPumpSystems(Module):
             
             #Thermanl Effected Area
             #Check Options
+            if len(building.getAttribute("PARCEL").getLinks()) < 1:
+                print "No parcel conected to the building"
+                continue
             parcel = city.getFace(building.getAttribute("PARCEL").getLink().uuid)
             nodes_parcel = TBVectorData_getNodeListFromFace(city, parcel)
             node_boundingbox =  pydmextensions.nodevector_obj()
