@@ -217,7 +217,7 @@ void CreateShadows::run()
     //foreach (std::string uuid, geom_uuids) {
 
     int number_geos = geom_uuids.size();
-#pragma omp parallel for
+//#pragma omp parallel for
     for (int i = 0; i < number_geos; i++) {
         std::string uuid = geom_uuids[i];
         DM::Face * f = city->getFace(uuid);
@@ -273,7 +273,7 @@ void CreateShadows::run()
 
     int TODO = nuuids;
 
-    #pragma omp parallel for
+   // #pragma omp parallel for
     for (int i = 0; i < nuuids; i++){
         //CreateInitalSolarRadiationVector
         std::vector<double> solarRadiation(numberOfDays, 0);
@@ -365,7 +365,7 @@ void CreateShadows::run()
 
         //DM::Logger(DM::Debug) << numberOfCenters;
         DM::Logger(DM::Debug) << newnumberOfCenters;
-        #pragma omp parallel for
+        //#pragma omp parallel for
         for (int c = 0; c < newnumberOfCenters; c++) {
             DM::Node * n1 =  nodesToCheck[c];
             std::vector<double> color(3);
