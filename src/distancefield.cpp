@@ -83,7 +83,7 @@ void DistanceField::run() {
     uuids = sys->getUUIDs(outV);
 //
     int NumberOfFaces = uuids.size();
-    #pragma omp parallel for
+    //#pragma omp parallel for
     for (int i = 0; i < NumberOfFaces; i++) {
         DM::Face * f = sys->getFace(uuids[i]);
         DM::Node cn = TBVectorData::CaclulateCentroid(sys, f);
