@@ -73,6 +73,7 @@ ExtrudeBuildings::ExtrudeBuildings()
     footprints = DM::View("Footprint", DM::FACE, DM::READ);
     footprints.getAttribute("stories");
     footprints.getAttribute("PARCEL");
+    footprints.addLinks("BUILDING", houses);
 
     building_model = DM::View("Geometry", DM::FACE, DM::WRITE);
     building_model.addAttribute("type");
@@ -108,7 +109,9 @@ void ExtrudeBuildings::run()
         int stories =  (int) footprint->getAttribute("stories")->getDouble();
 
         std::vector<DM::Node * > nodes  = TBVectorData::getNodeListFromFace(city, footprint);
-        if (TBVectorData::CalculateArea(nodes) < this->minArea)
+
+        double area = fabs(TBVectorData::CalculateArea(city, footprint));
+        if (area < this->minArea)
             continue;
         if (!CGALGeometry::CheckOrientation(nodes))
         {
@@ -144,8 +147,8 @@ void ExtrudeBuildings::run()
         building->addAttribute("stories_below", 0); //cellar counts as story
         building->addAttribute("stories_height",3 );
 
-        building->addAttribute("floor_area", TBVectorData::CalculateArea(nodes));
-        building->addAttribute("gross_floor_area", TBVectorData::CalculateArea(nodes)*stories);
+        building->addAttribute("floor_area", area);
+        building->addAttribute("gross_floor_area", area*stories);
 
         building->addAttribute("centroid_x", n.getX());
         building->addAttribute("centroid_y", n.getY());
@@ -176,6 +179,10 @@ void ExtrudeBuildings::run()
             parcel->getAttribute("BUILDING")->setLink("BUILDING", building->getUUID());
         }
         building->getAttribute("Footprint")->setLink(this->footprints.getName(), footprint->getUUID());
+
+        footprint->getAttribute("BUILDING")->setLink(this->houses.getName(), building->getUUID());
+
+
         //Create Links
         //building->getAttribute("PARCEL")->setLink(parcels.getName(), parcel->getUUID());
         //parcel->getAttribute("BUILDING")->setLink(houses.getName(), building->getUUID());

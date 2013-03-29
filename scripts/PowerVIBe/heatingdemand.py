@@ -110,6 +110,10 @@ class MonthlyHeatingAndCooling(Module):
         return solarRadiationTotal 
         
     def monthlyValues(self,building, V, L, dates, temperatures, solarEnergy, T_heating):
+        print dates
+        if len(dates) < 1:
+            print "no vaules found"
+            return 
         firstDay = datetime.strptime(dates[0], '%Y-%m-%d')
         lastDay = datetime.strptime(dates[len(dates)-1], '%Y-%m-%d')
         currentmonth = firstDay.month

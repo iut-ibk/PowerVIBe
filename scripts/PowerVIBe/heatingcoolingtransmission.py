@@ -35,17 +35,25 @@ class HeatingCoolingTransmission(Module):
         Module.__init__(self)
         self.createParameter("FileName", FILENAME, "FileName")
         self.FileName = ""
+        self.createParameter("onSignal", BOOL, "onSignal")
+        self.onSignal = False
+        
+
+    def init(self):
         self.Type = "COMPONENT"
         self.buildings = View("BUILDING", COMPONENT, READ)
         self.buildings.getAttribute("built_year")
         self.buildings.addAttribute("transmission_coefficient_heating")
         self.buildings.addAttribute("transmission_coefficient_cooling")
-        #self.buildings.addAttribute("transmission_coefficient_ventilation")
+        
+        if self.onSignal:
+            self.buildings.getAttribute("selected")
+
         datastream = []
         datastream.append(self.buildings)
         self.addData("City", datastream)    
-
-
+   
+        
     def run(self):
         #init Database
         coefDB = HeatCoefficients(self.FileName)
@@ -55,6 +63,9 @@ class HeatingCoolingTransmission(Module):
         uuids = city.getUUIDs(self.buildings)
         for uuid in uuids:
             building = city.getComponent(uuid)
+            selected = building.getAttribute("selected").getDouble()
+            if self.onSignal == True and selected < 0.1:
+                continue
             Le = 0
             #print uuid
             parts = building.getAttribute("Geometry").getLinks()
