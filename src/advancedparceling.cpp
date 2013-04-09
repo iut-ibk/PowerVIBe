@@ -10,9 +10,9 @@ DM_DECLARE_NODE_NAME(AdvancedParceling, CityBlocks)
 AdvancedParceling::AdvancedParceling()
 {
     this->cityblocks = DM::View("CITYBLOCK", DM::FACE, DM::READ);
-    this->cityblocks.getAttribute("new");
+    this->cityblocks.getAttribute("selected");
     this->parcels = DM::View("PARCEL", DM::FACE, DM::WRITE);
-    this->parcels.addAttribute("new");
+    this->parcels.addAttribute("selected");
     this->bbs = DM::View("BBS", DM::FACE, DM::WRITE);
     this->bbs.addAttribute("generation");
 
@@ -58,9 +58,9 @@ void AdvancedParceling::init()
     if (!InputView)
         return;
     cityblocks = DM::View(InputView->getName(), InputView->getType(), DM::READ);
-    this->cityblocks.getAttribute("new");
+    this->cityblocks.getAttribute("selected");
     parcels = DM::View(OutputViewName, DM::FACE, DM::WRITE);
-    this->parcels.addAttribute("new");
+    this->parcels.addAttribute("selected");
     this->parcels.addAttribute("generation");
 
     std::vector<DM::View> datastream;
@@ -85,7 +85,7 @@ void AdvancedParceling::run(){
     //Here comes the action
     foreach (std::string uuid, block_uuids) {
         DM::Face *f  =city->getFace(uuid);
-        if (f->getAttribute("new")->getDouble() > 0.01) {
+        if (f->getAttribute("selected")->getDouble() > 0.01) {
             this->createSubdevision(city, f, 0);
 
         }
@@ -97,8 +97,7 @@ void AdvancedParceling::run(){
         return;
     foreach (std::string uuid, block_uuids) {
         DM::Face *f  =city->getFace(uuid);
-
-        f->addAttribute("new", 0);
+        f->addAttribute("selected", 0);
     }
 }
 
@@ -271,7 +270,7 @@ void AdvancedParceling::finalSubdevision(DM::System *sys, DM::Face *f, int gen)
         }
         DM::Face * f_new = sys->addFace(newFace, this->parcels);
         f_new->addAttribute("generation", gen);
-        f_new->addAttribute("new", 1);
+        f_new->addAttribute("selected", 1);
 
     }
 
