@@ -79,6 +79,7 @@ ELSE()
     SET(EXECUTABLE_OUTPUT_PATH ${PowerVIBe_BINARY_DIR})
     SET(SCRIPT_PATH ${PowerVIBe_BINARY_DIR}/PythonModules )
 ENDIF()
-ADD_SUBDIRECTORY(scripts)
+#Disable Python Modules for PowerVIBe (are not supported as default on windows)
+#ADD_SUBDIRECTORY(scripts)
 ADD_SUBDIRECTORY(src)
 
