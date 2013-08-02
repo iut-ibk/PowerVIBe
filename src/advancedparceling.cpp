@@ -48,16 +48,16 @@ void AdvancedParceling::init()
     if (InputViewName.empty() || OutputViewName.empty())
         return;
 
-    DM::System * sys = this->getData("city");
+    //DM::System * sys = this->getData("city");
 
-    if (!sys)
+    //if (!sys)
+        //return;
+
+    DM::View InputView = this->getViewInStream("city", InputViewName);
+
+    if (InputView.getType() == -1)
         return;
-
-    DM::View * InputView = sys->getViewDefinition(InputViewName);
-
-    if (!InputView)
-        return;
-    cityblocks = DM::View(InputView->getName(), InputView->getType(), DM::READ);
+    cityblocks = DM::View(InputView.getName(), InputView.getType(), DM::READ);
     this->cityblocks.getAttribute("selected");
     parcels = DM::View(OutputViewName, DM::FACE, DM::WRITE);
     this->parcels.addAttribute("selected");
