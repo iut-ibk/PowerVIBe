@@ -84,7 +84,7 @@ class CreateDAE(Module):
             x = []
             y = []
             z = []
-
+            print len(triangles)
             for n in triangles:
                 x.append(n.getX())
                 y.append(n.getY())
@@ -133,18 +133,31 @@ class CreateDAE(Module):
         mesh.write(str(self.Filename) + ".dae")
 
     def run(self):
-        
         city = self.getData("City")   
-        uuids = city.getUUIDs(View(self.ViewName, COMPONENT, READ))
-        objects = []
+        data_type = -1
+        if self.Type == "COMPONENT":
+            data_type = COMPONENT
+        if self.Type == "FACE":
+            data_type = FACE   
+        if data_type == -1:
+            print "Unknown Data Type"
+            return
+        uuids = city.getUUIDs(View(self.ViewName, data_type, READ))
+        
+        if len(uuids) == 0:
+            print "no objects found"
+            return
+        objects = []   
         for uuid in uuids:
-            #getLinks
-            building = city.getComponent(uuid)
-            
-            if self.Type == "COMPONENT":
+
+            if data_type == COMPONENT:
+                building = city.getComponent(uuid)
                 LinkAttributes = building.getAttribute("Geometry").getLinks()
                 for attribute in LinkAttributes:
                     objects.append(attribute.uuid)
-            
-        self.createDAE_KML(city, uuid, objects)
+            if data_type == FACE:
+                print "add"
+                objects.append(uuid)
+        
+        self.createDAE_KML(city, "", objects)
 
