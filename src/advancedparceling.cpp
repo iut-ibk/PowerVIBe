@@ -87,11 +87,8 @@ void AdvancedParceling::run(){
         DM::Face *f  =city->getFace(uuid);
         if (f->getAttribute("selected")->getDouble() > 0.01) {
             this->createSubdevision(city, f, 0);
-
         }
-
     }
-
 
     if (!remove_new)
         return;
@@ -122,20 +119,12 @@ void AdvancedParceling::createSubdevision(DM::System * sys, DM::Face *f, int gen
     double x_c = center.getX();
     double y_c = center.getY();
 
-
     if (this->length*2 > size[0]) {
         finalSubdevision(sys, f, gen+1);
         return;
     }
     //Create New Face
-    QPolygonF f_origin = TBVectorData::FaceAsQPolgonF(sys, f);
-
     int elements = size[1]/(this->length);
-    /*if (elements < 4) {
-        elements = 3;
-    } else {
-        elements = 2;
-    }*/
     elements = 2;
     for (int i = 0; i < 2; i++) {
         double l = size[0];
@@ -150,10 +139,6 @@ void AdvancedParceling::createSubdevision(DM::System * sys, DM::Face *f, int gen
         QTransform t1;
         t1.translate(x_c, y_c);
         QPolygonF intersection = t1.map(intersection_tmp);
-        /*QPolygonF intersected = f_origin.intersected(intersection);
-
-        if (intersected.size() == 0)
-            intersected = intersection;*/
 
         std::vector<DM::Node* > intersection_p;
         for (int i = 0; i < intersection.size()-1; i++) {
@@ -162,25 +147,22 @@ void AdvancedParceling::createSubdevision(DM::System * sys, DM::Face *f, int gen
         }
         intersection_p.push_back(intersection_p[0]);
         DM::Face * bb = sys->addFace(intersection_p, bbs);
-        bb->addAttribute("generation", gen);
-        std::vector<DM::Node> intersected_nodes = DM::CGALGeometry::IntersectFace(sys, f, bb);
 
-        if (intersected_nodes.size() < 3) {
+        bb->addAttribute("generation", gen);
+        std::vector<DM::Face *> intersected_faces = DM::CGALGeometry::IntersectFace(sys, f, bb);
+
+        if (intersected_faces.size() == 0) {
             DM::Logger(DM::Warning) << "Advanced parceling createSubdevision interseciton failed";
             continue;
         }
-        std::vector<DM::Node*> newFace;
 
-        foreach (DM::Node n, intersected_nodes)
-            newFace.push_back(sys->addNode(DM::Node(n.getX(), n.getY(), 0)));
-        newFace.push_back(newFace[0]);
+        foreach (DM::Face * f_new ,intersected_faces ) {
+            f_new->addAttribute("generation", gen);
+            this->createSubdevision(sys, f_new, gen+1);
+        }
 
-        DM::Face * f_new;
-        f_new = sys->addFace(newFace);
 
-        f_new->addAttribute("generation", gen);
 
-        this->createSubdevision(sys, f_new, gen+1);
     }
 }
 
@@ -189,7 +171,6 @@ void AdvancedParceling::finalSubdevision(DM::System *sys, DM::Face *f, int gen)
     //DM::Logger(DM::Debug) << "Start Final Subdevision";
     std::vector<DM::Node> box;
     std::vector<double> size;
-    QPolygonF f_origin = TBVectorData::FaceAsQPolgonF(sys, f);
 
     double alpha = DM::CGALGeometry::CalculateMinBoundingBox(TBVectorData::getNodeListFromFace(sys, f), box, size);
 
@@ -229,49 +210,47 @@ void AdvancedParceling::finalSubdevision(DM::System *sys, DM::Face *f, int gen)
         }
         intersection_p.push_back(intersection_p[0]);
 
-        std::vector<DM::Node> intersected_nodes = DM::CGALGeometry::IntersectFace(sys, f, sys->addFace(intersection_p));
+        std::vector<DM::Face *> intersected_face = DM::CGALGeometry::IntersectFace(sys, f, sys->addFace(intersection_p));
 
-        if (intersected_nodes.size() < 2) {
+        if (intersected_face.size() == 0) {
             DM::Logger(DM::Warning) << "Final Intersection Failed";
             continue;
         }
+        foreach (DM::Face * nF ,intersected_face ) {
 
-        std::vector<DM::Node*> newFace;
+            std::vector<DM::Node*> newFace = nF->getNodePointers();
 
 
-        foreach (DM::Node n, intersected_nodes)
-            newFace.push_back(sys->addNode(DM::Node(n.getX(), n.getY(), 0)));
-        newFace.push_back(newFace[0]);
+            if (offset > 0.0001) {
+                //DM::Logger(DM::Debug) << "----";
+                //DM::Logger(DM::Debug)<< newFace.size();
+                // foreach (DM::Node * n, newFace) {
+                // DM::Logger(DM::Debug) << n->getX() <<" " << n->getY();
+                // }
+                //DM::Logger(DM::Debug) << "Start offset";
+                std::vector<DM::Node> new_parcel = DM::CGALGeometry::OffsetPolygon(newFace, offset);
+                if (new_parcel.size() < 3) {
+                    DM::Logger(DM::Warning) << "Advaned offset interseciton failed";
+                    return;
+                }
+                std::vector<DM::Node*> newFace_Offset;
 
-        if (offset > 0.0001) {
-            DM::Logger(DM::Debug) << "----";
-            DM::Logger(DM::Debug)<< newFace.size();
-            foreach (DM::Node * n, newFace) {
-                DM::Logger(DM::Debug) << n->getX() <<" " << n->getY();
+                foreach (DM::Node p, new_parcel) {
+                    newFace_Offset.push_back(sys->addNode(p));
+                }
+                newFace_Offset.push_back(newFace_Offset[0]);
+                newFace = newFace_Offset;
+                //DM::Logger(DM::Debug) << newFace.size();
+                if (newFace.size() < 3) {
+                    DM::Logger(DM::Warning) << "Advaned parceling interseciton failed";
+                    continue;
+                }
             }
-            DM::Logger(DM::Debug) << "Start offset";
-            std::vector<DM::Node> new_parcel = DM::CGALGeometry::OffsetPolygon(newFace, offset);
-            if (new_parcel.size() < 3) {
-                DM::Logger(DM::Warning) << "Advaned offset interseciton failed";
-                return;
-            }
-            std::vector<DM::Node*> newFace_Offset;
+            DM::Face * f_new = sys->addFace(newFace, this->parcels);
+            f_new->addAttribute("generation", gen);
+            f_new->addAttribute("selected", 1);
 
-            foreach (DM::Node p, new_parcel) {
-                newFace_Offset.push_back(sys->addNode(p));
-            }
-            newFace_Offset.push_back(newFace_Offset[0]);
-            newFace = newFace_Offset;
-            //DM::Logger(DM::Debug) << newFace.size();
-            if (newFace.size() < 3) {
-                DM::Logger(DM::Warning) << "Advaned parceling interseciton failed";
-                continue;
-            }
         }
-        DM::Face * f_new = sys->addFace(newFace, this->parcels);
-        f_new->addAttribute("generation", gen);
-        f_new->addAttribute("selected", 1);
-
     }
 
     //DM::Logger(DM::Debug) << "Done Final Subdevision";
