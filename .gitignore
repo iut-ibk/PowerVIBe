@@ -11,4 +11,7 @@
 *.la
 *.a
 
+# Python generated binaries
+*.pyc
+
 *~
