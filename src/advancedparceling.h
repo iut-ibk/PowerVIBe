@@ -27,6 +27,8 @@ public:
 
     void createSubdevision(DM::System * sys,  DM::Face * f, int gen);
     void finalSubdevision(DM::System * sys, DM::Face * f, int gen);
+
+	void createFinalFaces(DM::System * workingsys, DM::System *sys, DM::View v);
 };
 
 #endif // ADVANCEDPARCELING_H
