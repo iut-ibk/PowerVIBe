@@ -146,6 +146,9 @@ void PlaceGWHP::createReport(DM::System * city) {
 
 void PlaceGWHP::run()
 {
+	DM::Logger(DM::Error) << "Needs to be redone, API to do_faces_interesct has changed!";
+	return;
+
 
     ThermalRegenerationDB TRDatabase(database_location);
 
@@ -382,8 +385,6 @@ bool PlaceGWHP::checkThermalEffectedAreas(System *sys, const std::vector<DM::Nod
 
     for (unsigned int j = 0; j < possible_nodes.size(); j++) {
 
-
-
         if (nodeID != -1) continue;
 
         DM::Node n_ref = possible_nodes[j];
@@ -400,17 +401,17 @@ bool PlaceGWHP::checkThermalEffectedAreas(System *sys, const std::vector<DM::Nod
         bool tmp_intersect = false;
         for (unsigned int i = 0; i < nodelists.size(); i++) {
             //Logger(Debug) <<  "Regfield";
-            if ( CGALGeometry::DoFacesInterect(nodelists[i],nodesToCheck ))  {
-                tmp_intersect = true;
-                break;
-            }
+//            if ( CGALGeometry::DoFacesInterect(nodelists[i],nodesToCheck ))  {
+//                tmp_intersect = true;
+//                break;
+//            }
             if (deepWell)
                 continue;
             //Logger(Debug) << " Hydraulic Effected";
-            if ( CGALGeometry::DoFacesInterect(nodelists[i],hydraulicEffected ) ) {
-                tmp_intersect = true;
-                break;
-            }
+//            if ( CGALGeometry::DoFacesInterect(nodelists[i],hydraulicEffected ) ) {
+//                tmp_intersect = true;
+//                break;
+//            }
 
 
         }
