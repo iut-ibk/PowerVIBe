@@ -28,6 +28,7 @@
 #include "modernbuilding.h"
 
 #include <tbvectordata.h>
+#include <cgalgeometry.h>
 #include <littlegeometryhelpers.h>
 
 DM_DECLARE_NODE_NAME(ModernBuilding, Buildings)
@@ -189,7 +190,7 @@ void ModernBuilding::run()
     //Add Footprint
     DM::Face * footprint = city->addFace(nodes_footprint, footprints);
 
-    Node  n = TBVectorData::CaclulateCentroid(city, footprint);
+	Node  n = DM::CGALGeometry::CalculateCentroid(city, footprint);
     building->addAttribute("centroid_x", n.getX());
     building->addAttribute("centroid_y", n.getY());
 

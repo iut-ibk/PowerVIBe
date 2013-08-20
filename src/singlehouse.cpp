@@ -138,7 +138,7 @@ void SingleHouse::run()
     //Link Building with Footprint
     DMHelper::LinkComponents(houses, building, footprint, foot_print);
 
-    Node  n = TBVectorData::CaclulateCentroid(city, foot_print);
+	Node  n = DM::CGALGeometry::CalculateCentroid(city, foot_print);
     building->addAttribute("type", "single_family_house");
     building->addAttribute("built_year", buildyear);
     building->addAttribute("stories", stories);

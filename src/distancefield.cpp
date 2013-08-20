@@ -3,6 +3,7 @@
 #include <CGAL/point_generators_2.h>
 #include <CGAL/Orthogonal_k_neighbor_search.h>
 #include <CGAL/Search_traits_2.h>
+#include <cgalgeometry.h>
 #include <list>
 #include <cmath>
 #include <tbvectordata.h>
@@ -86,7 +87,7 @@ void DistanceField::run() {
     //#pragma omp parallel for
     for (int i = 0; i < NumberOfFaces; i++) {
         DM::Face * f = sys->getFace(uuids[i]);
-        DM::Node cn = TBVectorData::CaclulateCentroid(sys, f);
+		DM::Node cn = DM::CGALGeometry::CalculateCentroid(sys, f);
 
         Point_d query(cn.getX(),cn.getY());
         double l = -1;
