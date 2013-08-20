@@ -10,15 +10,53 @@
 
 DM_DECLARE_NODE_NAME(AdvancedParceling, CityBlocks)
 
+//Helper
+void print_ccb (Arrangement_2::Ccb_halfedge_const_circulator circ)
+{
+	Arrangement_2::Ccb_halfedge_const_circulator curr = circ;
+	std::cout << "(" << curr->source()->point() << ")\n";
+	do {
+		std::cout << "   [" << curr->curve() << "]   "
+				  << "(" << curr->target()->point() << ")\n";
+	} while (++curr != circ);
+	std::cout << std::endl;
+}
+
+void print_face (Arrangement_2::Face_const_handle f)
+{
+	// Print the outer boundary.
+	if (f->is_unbounded())
+		std::cout << "Unbounded face. " << std::endl;
+	else {
+		std::cout << "Outer boundary: ";
+		print_ccb (f->outer_ccb());
+	}
+
+	// Print the boundary of each of the holes.
+	Arrangement_2::Hole_const_iterator hi;
+	int                                 index = 1;
+	for (hi = f->holes_begin(); hi != f->holes_end(); ++hi, ++index) {
+		std::cout << "    Hole #" << index << ": ";
+		print_ccb (*hi);
+	}
+
+	// Print the isolated vertices.
+	Arrangement_2::Isolated_vertex_const_iterator iv;
+	for (iv = f->isolated_vertices_begin(), index = 1;
+		 iv != f->isolated_vertices_end(); ++iv, ++index)
+	{
+		std::cout << "    Isolated vertex #" << index << ": "
+				  << "(" << iv->point() << ")" << std::endl;
+	}
+}
+
+
 AdvancedParceling::AdvancedParceling()
 {
 	this->cityblocks = DM::View("CITYBLOCK", DM::FACE, DM::READ);
 	this->cityblocks.getAttribute("selected");
 	this->parcels = DM::View("PARCEL", DM::FACE, DM::WRITE);
 	this->parcels.addAttribute("selected");
-	this->bbs = DM::View("BBS", DM::FACE, DM::WRITE);
-	this->bbs.addAttribute("generation");
-
 	this->parcels.addAttribute("generation");
 
 	aspectRatio = 2;
@@ -38,7 +76,6 @@ AdvancedParceling::AdvancedParceling()
 	this->addParameter("OUTPUTVIEW", DM::STRING, &OutputViewName);
 
 	std::vector<DM::View> datastream;
-	//datastream.push_back(bbs);
 	datastream.push_back(DM::View("dummy", DM::SUBSYSTEM, DM::MODIFY));
 
 	this->addData("city", datastream);
@@ -66,11 +103,8 @@ void AdvancedParceling::init()
 
 	datastream.push_back(cityblocks);
 	datastream.push_back(parcels);
-	//datastream.push_back(bbs);
-
 
 	this->addData("city", datastream);
-
 }
 
 /** The method is based on the minial bounding box */
@@ -103,8 +137,6 @@ void AdvancedParceling::run(){
 		DM::Face * f = static_cast<DM::Face *> (c);
 		f->addAttribute("selected", 0);
 	}
-
-
 }
 
 void AdvancedParceling::createSubdevision(DM::System * sys, DM::Face *f, int gen)
@@ -123,7 +155,7 @@ void AdvancedParceling::createSubdevision(DM::System * sys, DM::Face *f, int gen
 
 	bb = sys->addFace(l_bb);
 
-	DM::Node center = TBVectorData::CaclulateCentroid(sys, bb);
+	DM::Node center = DM::CGALGeometry::CalculateCentroid(sys, bb);
 
 	double x_c = center.getX();
 	double y_c = center.getY();
@@ -189,7 +221,7 @@ void AdvancedParceling::finalSubdevision(DM::System *sys, DM::Face *f, int gen)
 
 	bb = sys->addFace(l_bb);
 
-	DM::Node center = TBVectorData::CaclulateCentroid(sys, bb);
+	DM::Node center = DM::CGALGeometry::CalculateCentroid(sys, bb);
 	//Finale spilts in the other direciton
 	//Calculate Number of Splits
 	int elements = size[1]/2/(this->length/this->aspectRatio)+1;
@@ -244,120 +276,73 @@ void AdvancedParceling::finalSubdevision(DM::System *sys, DM::Face *f, int gen)
 			}
 			DM::Face * f_new = sys->addFace(newFace, this->parcels);
 			f_new->addAttribute("generation", gen);
-
 		}
 	}
+}
 
+std::vector<DM::Node *> AdvancedParceling::extractCGALFace(Arrangement_2::Ccb_halfedge_const_circulator hec, DM::SpatialNodeHashMap & sphs)
+{
+	std::vector<DM::Node *> vp;
+	Arrangement_2::Ccb_halfedge_const_circulator curr = hec;
+	do{
+		float x = CGAL::to_double(curr->source()->point().x());
+		float y = CGAL::to_double(curr->source()->point().y());
+		DM::Node * n = sphs.addNode(x,y,0,0);
+		vp.push_back(n);
+	}
+	while(++curr != hec );
+
+	return vp;
+}
+
+bool AdvancedParceling::checkIfHoleFilling(Arrangement_2::Ccb_halfedge_const_circulator hec)
+{
+	bool isHole = true;
+	Arrangement_2::Ccb_halfedge_const_circulator curr = hec;
+	do{
+		if(curr->twin()->face()->is_unbounded()) {
+			isHole = false;
+		}
+	}  while(++curr != hec );
+
+	return isHole;
 }
 
 void AdvancedParceling::createFinalFaces(DM::System *workingsys, DM::System * sys, DM::View v)
 {
-	DM::SpatialNodeHashMap sphs(sys,10000,false);
-
-	Arrangement_2::Edge_iterator					eit;
+	DM::SpatialNodeHashMap sphs(sys,100,false);
 	Arrangement_2::Face_const_iterator              fit;
-	Arrangement_2::Ccb_halfedge_const_circulator    curr;
 	Segment_list_2									segments;
 	Arrangement_2									arr;
-	segments = DM::CGALGeometry_P::EdgeToSegment2D(workingsys, v);
 
+	segments = DM::CGALGeometry_P::EdgeToSegment2D(workingsys, v);
 	insert (arr, segments.begin(), segments.end());
 
 	int faceCounter = 0;
-	int NodeCounter = 0;
 	for (fit = arr.faces_begin(); fit != arr.faces_end(); ++fit) {
-		if (fit->is_unbounded()) {
-			DM::Logger(DM::Debug) << "Unbounded Face";
+		if (fit->is_unbounded()) { //if unboundI don't want you
 			continue;
 		}
-		curr = fit->outer_ccb();
+		if (checkIfHoleFilling(fit->outer_ccb())) // Don't add face if filling of hole
+			continue;
 
-		Arrangement_2::Ccb_halfedge_const_circulator hec = fit->outer_ccb();
-		Arrangement_2::Ccb_halfedge_const_circulator end = hec;
-		Arrangement_2::Ccb_halfedge_const_circulator next = hec;
-		bool isBoundary = false;
-		if(hec->twin()->face()->is_unbounded()) {
-			isBoundary = true;
-		}
-		std::vector<Point_2> ressults_P2;
-		std::vector<DM::Node *> vp;
-		next++;
-		if (hec->curve().target() == next->curve().source() || hec->curve().target() == next->curve().target()) {
-			ressults_P2.push_back(hec->curve().target());
-			float x = CGAL::to_double(hec->curve().target().x());
-			float y = CGAL::to_double(hec->curve().target().y());
-			if (!sphs.findNode(x,y,0.001)){
-				DM::Logger(DM::Debug) << "Found\t" << x << "\t" << y;
-				NodeCounter++;
-			}
-			DM::Node * n = sphs.addNode(x,y,0,0.001);
-			if (isBoundary) n->addAttribute("boundary_node", 1);
-			vp.push_back(n);
-
-		} else {
-			ressults_P2.push_back(hec->curve().source());
-			float x = CGAL::to_double(hec->curve().source().x());
-			float y = CGAL::to_double(hec->curve().source().y());
-			if (!sphs.findNode(x,y,0.001)){
-				DM::Logger(DM::Debug) << "Found\t" << x << "\t" << y;
-				NodeCounter++;
-			}
-			DM::Node * n = sphs.addNode(x,y,0,0.001);
-			if (isBoundary) n->addAttribute("boundary_node", 1);
-			vp.push_back(n);
-
-		}
-		do{
-			++hec;
-			bool source = false;
-			bool target = false;
-			for ( unsigned int i = 0; i < ressults_P2.size(); i++) {
-				if ( ressults_P2[i] == hec->curve().target() ) {
-					target = true;
-				}  else if ( ressults_P2[i] == hec->curve().source() )   {
-					source = true;
-				}
-
-			}
-
-			if (source == false ) {
-				ressults_P2.push_back(hec->curve().source());
-				float x = CGAL::to_double(hec->curve().source().x());
-				float y = CGAL::to_double(hec->curve().source().y());
-				if (!sphs.findNode(x,y,0.001)){
-					DM::Logger(DM::Debug) << "Found\t" << x << "\t" << y;
-					NodeCounter++;
-
-				}
-				DM::Node * n = sphs.addNode(x,y,0,0.001);
-				if (isBoundary) n->addAttribute("boundary_node", 1);
-				vp.push_back(n);
-			}
-			if (target == false ) {
-				ressults_P2.push_back(hec->curve().target());
-				float x = CGAL::to_double(hec->curve().target().x());
-				float y = CGAL::to_double(hec->curve().target().y());
-				if (!sphs.findNode(x,y,0.001)){
-					DM::Logger(DM::Debug) << "Found\t" << x << "\t" << y;
-					NodeCounter++;
-				}
-				DM::Node * n = sphs.addNode(x,y,0,0.001);
-				if (isBoundary) n->addAttribute("boundary_node", 1);
-				vp.push_back(n);
-			}
-
-		}
-		while(hec != end );
+		std::vector<DM::Node *> vp = extractCGALFace(fit->outer_ccb(), sphs);
 		faceCounter++;
-		if (vp.size() < 3)
+
+		if (vp.size() < 2)
 			continue;
-		vp.push_back(vp[0]);
 		DM::Face * f = sys->addFace(vp, v);
 		f->addAttribute("selected", 1);
-	}
 
-	DM::Logger(DM::Standard) << "FaceCounter " << faceCounter;
-	DM::Logger(DM::Standard) << "NodeCounter " << NodeCounter;
+		//Extract Holes
+		Arrangement_2::Hole_const_iterator hi;
+		for (hi = fit->holes_begin(); hi != fit->holes_end(); ++hi) {
+			std::vector<DM::Node *> hole = extractCGALFace((*hi), sphs);
+			f->addHole(hole);
+		}
+	}
 }
+
+
 
 
