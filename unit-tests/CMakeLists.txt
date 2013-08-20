@@ -1,0 +1,15 @@
+SET(gtest_force_shared_crt "ON" CACHE BOOL "")
+MESSAGE(STATUS "gtest_force_shared_crt = ${gtest_force_shared_crt}")
+INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}
+		    ${gtest_SOURCE_DIR}/include
+		    ${CMAKE_CURRENT_SOURCE_DIR}/../src)
+
+FILE(GLOB UNIT_CPP *.cpp)
+
+ADD_EXECUTABLE(unit-tests-powervibe ${UNIT_CPP})
+
+IF(${CMAKE_CXX_COMPILER_ID} STREQUAL GNU)
+	SET_TARGET_PROPERTIES(unit-tests-powervibe  PROPERTIES COMPILE_FLAGS "-frounding-math -fPIC")
+ENDIF()
+
+TARGET_LINK_LIBRARIES(unit-tests-powervibe gtest_main PowerVIBe ${DYNAMIND_TOOLBOX_LIBRARY} ${DYNAMIND_CORE_LIBRARY} ${DYNAMIND_EXTENSIONS_LIBRARY} ${QT_LIBRARIES} ${CGAL_LIBRARIES} ${CGAL_3RD_PARTY_LIBRARIES} ${GDAL_LIBRARY})

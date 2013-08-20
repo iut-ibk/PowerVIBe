@@ -82,4 +82,5 @@ ENDIF()
 #Disable Python Modules for PowerVIBe (are not supported as default on windows)
 #ADD_SUBDIRECTORY(scripts)
 ADD_SUBDIRECTORY(src)
+ADD_SUBDIRECTORY(unit-tests)
 
