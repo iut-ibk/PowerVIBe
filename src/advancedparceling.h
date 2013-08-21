@@ -7,37 +7,49 @@
 
 class DM_HELPER_DLL_EXPORT AdvancedParceling : public DM::Module
 {
-    DM_DECLARE_NODE(AdvancedParceling)
-private:
-    DM::View parcels;
-    DM::View cityblocks;
-    DM::View bbs;
+	DM_DECLARE_NODE(AdvancedParceling)
+	private:
+		DM::View resultView;
+	DM::View inputView;
+	DM::View bbs;
 
-    double aspectRatio;
-    double length;
-    double offset;
+	double aspectRatio; //needs to be > 1
+	double length;
+	double offset;
 
-    bool remove_new;
-    std::string InputViewName;
-    std::string OutputViewName;
+	bool remove_new;
+	std::string InputViewName;
+	std::string OutputViewName;
 
+	double tol;
 
 
 public:
-    AdvancedParceling();
-    void run();
-    void init();
-    void createSubdevision(DM::System * sys,  DM::Face * f, int gen);
-    void finalSubdevision(DM::System * sys, DM::Face * f, int gen);
+	AdvancedParceling();
+	void run();
+	void init();
+	void createSubdevision(DM::System * sys,  DM::Face * f, int gen);
 
 	/** @brief creates final parceling and identify edges, transfers results from working sys to sys */
-	void createFinalFaces(DM::System * workingsys, DM::System *sys, DM::View v);
+	void createFinalFaces(DM::System * workingsys, DM::System *sys, DM::Face *orig, DM::View v);
 
 	/** @brief extract faces and returns vector of face nodes*/
 	std::vector<DM::Node *> extractCGALFace(Arrangement_2::Ccb_halfedge_const_circulator hec, DM::SpatialNodeHashMap & sphs);
 
 	/** @brief returns if face is filling of a assumed hole. I assume it is a hole when non of its edges is part of the boundary */
-	bool checkIfHoleFilling(Arrangement_2::Ccb_halfedge_const_circulator hec);
+	bool checkIfHoleFilling(DM::Face *orig, DM::Face *face_new);
+
+
+	double getLength() const;
+	void setLength(double value);
+	double getOffset() const;
+	void setOffset(double value);
+	double getAspectRatio() const;
+	void setAspectRatio(double value);
+	DM::View getInputView() const;
+	void setInputView(const DM::View &value);
+	DM::View getResultView() const;
+	void setResultView(const DM::View &value);
 };
 
 #endif // ADVANCEDPARCELING_H
