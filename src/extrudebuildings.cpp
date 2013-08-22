@@ -140,7 +140,7 @@ void ExtrudeBuildings::run()
 
 
 
-        Node  n = TBVectorData::CaclulateCentroid(city, footprint);
+        Node  n = DM::CGALGeometry::CalculateCentroid(city, footprint);
         building->addAttribute("type", "single_family_house");
         building->addAttribute("built_year", buildyear);
         building->addAttribute("stories", stories);

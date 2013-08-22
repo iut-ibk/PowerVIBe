@@ -114,7 +114,7 @@ void AdvancedParceling::createSubdevision(DM::System * sys, DM::Face *f, int gen
 
     bb = sys->addFace(l_bb);
 
-    DM::Node center = TBVectorData::CaclulateCentroid(sys, bb);
+    DM::Node center = DM::CGALGeometry::CalculateCentroid(sys, bb);
 
     double x_c = center.getX();
     double y_c = center.getY();
@@ -183,7 +183,7 @@ void AdvancedParceling::finalSubdevision(DM::System *sys, DM::Face *f, int gen)
 
     bb = sys->addFace(l_bb);
 
-    DM::Node center = TBVectorData::CaclulateCentroid(sys, bb);
+    DM::Node center = DM::CGALGeometry::CalculateCentroid(sys, bb);
 
     //DM::Logger(DM::Debug) << alpha;
     //Finale spilts in the other direciton

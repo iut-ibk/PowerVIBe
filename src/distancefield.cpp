@@ -6,6 +6,7 @@
 #include <list>
 #include <cmath>
 #include <tbvectordata.h>
+#include "cgalgeometry.h"
 #ifdef _OPENMP
 #include <omp.h>
 #endif
@@ -86,7 +87,7 @@ void DistanceField::run() {
     //#pragma omp parallel for
     for (int i = 0; i < NumberOfFaces; i++) {
         DM::Face * f = sys->getFace(uuids[i]);
-        DM::Node cn = TBVectorData::CaclulateCentroid(sys, f);
+        DM::Node cn = DM::CGALGeometry::CalculateCentroid(sys, f);
 
         Point_d query(cn.getX(),cn.getY());
         double l = -1;
