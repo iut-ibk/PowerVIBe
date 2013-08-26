@@ -13,6 +13,8 @@
 #include <print_utils.h>
 
 
+
+
 DM::Face * addRectangleWithHole(DM::System* sys, DM::View v)
 {
 	DM::Node * n1 = sys->addNode(DM::Node(1,1,0));
@@ -97,9 +99,10 @@ void addRectangleWithHoleArray(DM::System* sys, DM::View v)
 	}
 }
 
+
 TEST_F(UnitTestsDMPowerVIBe, TestFinalFaces_final_2_holes) {
 	ostream *out = &cout;
-	DM::Log::init(new DM::OStreamLogSink(*out), DM::Debug);
+	DM::Log::init(new DM::OStreamLogSink(*out), DM::Standard);
 
 	DM::System * sys = new DM::System();
 	DM::System * result_sys = new DM::System();
@@ -141,8 +144,8 @@ TEST_F(UnitTestsDMPowerVIBe, TestFinalFaces_final_2_holes) {
 
 	parceling.setResultView(resultView);
 	parceling.setInputView(inputView);
-
-	parceling.createFinalFaces(sys, result_sys,fr, resultView);
+	DM::SpatialNodeHashMap sphs(sys,100,false);
+	parceling.createFinalFaces(sys, result_sys,fr, resultView,sphs);
 
 	int face_counter = 0;
 	int hole_counter = 0;
@@ -170,7 +173,7 @@ TEST_F(UnitTestsDMPowerVIBe, TestFinalFaces_final_2_holes) {
 	DM::Logger(DM::Debug) << area;
 	EXPECT_EQ(face_counter,1);
 	EXPECT_EQ(hole_counter,2);
-	EXPECT_DOUBLE_EQ(area,DM::CGALGeometry::CalculateArea2D(fr));
+	EXPECT_TRUE(fabs(area - DM::CGALGeometry::CalculateArea2D(fr)) < 0.0001);
 }
 
 
@@ -214,10 +217,11 @@ TEST_F(UnitTestsDMPowerVIBe, TestParceling_final_with_holes_at_border) {
 	parceling.setInputView(inputView);
 
 	double area = 0;
+	DM::SpatialNodeHashMap sphs(sys,100,false);
 	mforeach (DM::Component * c, sys->getAllComponentsInView(inputView)) {
 		DM::Face * f = static_cast<DM::Face*>(c);
 		parceling.createSubdevision(sys, f, 0);
-		parceling.createFinalFaces(sys, result_sys, f, resultView);
+		parceling.createFinalFaces(sys, result_sys, f, resultView, sphs);
 		area = DM::CGALGeometry::CalculateArea2D(f);
 	}
 	int counter = 0;
@@ -227,7 +231,7 @@ TEST_F(UnitTestsDMPowerVIBe, TestParceling_final_with_holes_at_border) {
 		parcel_area+=DM::CGALGeometry::CalculateArea2D(f);
 		counter++;
 	}
-	EXPECT_DOUBLE_EQ(area,parcel_area);
+	EXPECT_TRUE(fabs(area - parcel_area) < 0.0001);
 }
 
 
@@ -263,10 +267,11 @@ TEST_F(UnitTestsDMPowerVIBe, TestParceling_final_with_small_hole) {
 	parceling.setInputView(inputView);
 
 	double area = 0;
+	DM::SpatialNodeHashMap sphs(sys,100,false);
 	mforeach (DM::Component * c, sys->getAllComponentsInView(inputView)) {
 		DM::Face * f = static_cast<DM::Face*>(c);
 		parceling.createSubdevision(sys, f, 0);
-		parceling.createFinalFaces(sys, result_sys, f, resultView);
+		parceling.createFinalFaces(sys, result_sys, f, resultView, sphs);
 		area = DM::CGALGeometry::CalculateArea2D(f);
 	}
 	double parcel_area_input = 0;
@@ -287,7 +292,7 @@ TEST_F(UnitTestsDMPowerVIBe, TestParceling_final_with_small_hole) {
 	}
 	DM::Logger(DM::Standard) << "counter parcels " << counter;
 	DM::Logger(DM::Debug) << "area_parcel " << parcel_area;
-	EXPECT_DOUBLE_EQ(area,parcel_area);
+	EXPECT_TRUE(fabs(area - parcel_area) < 0.0001);
 }
 
 TEST_F(UnitTestsDMPowerVIBe, TestParceling_final_with_holes) {
@@ -309,10 +314,11 @@ TEST_F(UnitTestsDMPowerVIBe, TestParceling_final_with_holes) {
 	parceling.setInputView(inputView);
 
 	double area = 0;
+	DM::SpatialNodeHashMap sphs(sys,100,false);
 	mforeach (DM::Component * c, sys->getAllComponentsInView(inputView)) {
 		DM::Face * f = static_cast<DM::Face*>(c);
 		parceling.createSubdevision(sys, f, 0);
-		parceling.createFinalFaces(sys, result_sys, f, resultView);
+		parceling.createFinalFaces(sys, result_sys, f, resultView,sphs);
 		area = DM::CGALGeometry::CalculateArea2D(f);
 	}
 	int counter = 0;
@@ -326,7 +332,7 @@ TEST_F(UnitTestsDMPowerVIBe, TestParceling_final_with_holes) {
 	DM::Logger(DM::Debug) << "counter " << counter;
 	EXPECT_EQ(counter,12);
 	DM::Logger(DM::Debug) << "area_parcel " << parcel_area;
-	EXPECT_DOUBLE_EQ(area,parcel_area);
+	EXPECT_TRUE(fabs(area - parcel_area) < 0.0001);
 }
 
 TEST_F(UnitTestsDMPowerVIBe, TestParceling_with_holes) {
@@ -363,7 +369,7 @@ TEST_F(UnitTestsDMPowerVIBe, TestParceling_with_holes) {
 	DM::Logger(DM::Debug) << "counter " << counter;
 	EXPECT_EQ(counter,12);
 	DM::Logger(DM::Debug) << "area_parcel " << parcel_area;
-	EXPECT_DOUBLE_EQ(area,parcel_area);
+	EXPECT_TRUE(fabs(area - parcel_area) < 0.0001);
 }
 
 
@@ -387,11 +393,12 @@ TEST_F(UnitTestsDMPowerVIBe, TestParceling) {
 	parceling.setInputView(inputView);
 
 	double area = 0;
+	DM::SpatialNodeHashMap sphs(sys,100,false);
 	mforeach (DM::Component * c, sys->getAllComponentsInView(inputView)) {
 		DM::Face * f = static_cast<DM::Face*>(c);
 		parceling.createSubdevision(sys, f, 0);
 		area = DM::CGALGeometry::CalculateArea2D(f);
-		parceling.createFinalFaces(sys, ReturnSys, f, resultView);
+		parceling.createFinalFaces(sys, ReturnSys, f, resultView,sphs);
 	}
 	int counter = 0;
 	double parcel_area = 0;
@@ -430,7 +437,7 @@ TEST_F(UnitTestsDMPowerVIBe, TestParceling) {
 	DM::Logger(DM::Debug) << hole_counter;
 	DM::Logger(DM::Debug) << area;
 
-	EXPECT_DOUBLE_EQ(area_end,area);
+	EXPECT_TRUE(fabs(area_end - area) < 0.0001);
 
 }
 
@@ -470,8 +477,8 @@ TEST_F(UnitTestsDMPowerVIBe, AP_Holes_createFinalFaces_array) {
 			bF->addHole(h);
 		}
 	}
-
-	parcling.createFinalFaces(sys, ReturnSys,bF, v);
+		DM::SpatialNodeHashMap sphs(sys,100,false);
+	parcling.createFinalFaces(sys, ReturnSys,bF, v,sphs);
 
 
 	int face_counter = 0;
@@ -501,7 +508,8 @@ TEST_F(UnitTestsDMPowerVIBe, AP_Holes_createFinalFaces_array) {
 	DM::Logger(DM::Debug) << area;
 	EXPECT_EQ(face_counter,3);
 	EXPECT_EQ(hole_counter,3);
-	EXPECT_DOUBLE_EQ(area,2.25);
+	EXPECT_TRUE(fabs(2.25 - area) < 0.0001);
+
 }
 
 TEST_F(UnitTestsDMPowerVIBe, TestFinalFaces_final_small_hole) {
@@ -534,14 +542,18 @@ TEST_F(UnitTestsDMPowerVIBe, TestFinalFaces_final_small_hole) {
 
 	parceling.setResultView(resultView);
 	parceling.setInputView(inputView);
-
-	parceling.createFinalFaces(sys, result_sys,fr, resultView);
+	DM::SpatialNodeHashMap sphs(sys,100,false);
+	parceling.createFinalFaces(sys, result_sys,fr, resultView, sphs);
 
 	int face_counter = 0;
 	int hole_counter = 0;
 	double area = 0;
+	int street = 0;
 	mforeach (DM::Component * c, result_sys->getAllComponentsInView(resultView)) {
 		DM::Face * f = static_cast<DM::Face*>(c);
+		foreach (DM::Node * n, f->getNodePointers()) {
+			street+=n->getAttribute("street_side")->getDouble();
+		}
 		DM::Logger(DM::Debug) << "face ";
 		foreach (DM::Node * n, f->getNodePointers()) {
 			DM::Logger(DM::Debug) << n->getX() << "\t"<< n->getY()<< "\t"<< n->getZ();
@@ -563,7 +575,8 @@ TEST_F(UnitTestsDMPowerVIBe, TestFinalFaces_final_small_hole) {
 	DM::Logger(DM::Debug) << area;
 	EXPECT_EQ(face_counter,1);
 	EXPECT_EQ(hole_counter,1);
-	EXPECT_DOUBLE_EQ(area,DM::CGALGeometry::CalculateArea2D(fr));
+	EXPECT_EQ(street,4);
+	EXPECT_TRUE(fabs(DM::CGALGeometry::CalculateArea2D(fr) - area) < 0.0001);
 }
 
 TEST_F(UnitTestsDMPowerVIBe, AP_Holes_createFinalFaces) {
@@ -577,13 +590,18 @@ TEST_F(UnitTestsDMPowerVIBe, AP_Holes_createFinalFaces) {
 	DM::Face * boundary = addRectangleWithHole(sys,v);
 
 	AdvancedParceling parceling;
-	parceling.createFinalFaces(sys, ReturnSys,boundary, v);
+	DM::SpatialNodeHashMap sphs(sys,100,false);
+	parceling.createFinalFaces(sys, ReturnSys,boundary, v, sphs);
 
 	int face_counter = 0;
 	int hole_counter = 0;
 	double area = 0;
+	int street = 0;
 	mforeach (DM::Component * c, ReturnSys->getAllComponentsInView(v)) {
 		DM::Face * f = static_cast<DM::Face*>(c);
+		foreach (DM::Node * n, f->getNodePointers()) {
+			street+=n->getAttribute("street_side")->getDouble();
+		}
 		DM::Logger(DM::Debug) << "face ";
 		foreach (DM::Node * n, f->getNodePointers()) {
 			DM::Logger(DM::Debug) << n->getX() << "\t"<< n->getY()<< "\t"<< n->getZ();
@@ -604,6 +622,7 @@ TEST_F(UnitTestsDMPowerVIBe, AP_Holes_createFinalFaces) {
 	DM::Logger(DM::Debug) << area;
 	EXPECT_EQ(face_counter,1);
 	EXPECT_EQ(hole_counter,1);
-	EXPECT_DOUBLE_EQ(area,0.75);
+	EXPECT_EQ(street,4);
+	EXPECT_TRUE(fabs(0.75 - area) < 0.0001);
 }
 

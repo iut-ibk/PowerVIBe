@@ -10,6 +10,7 @@ class DM_HELPER_DLL_EXPORT AdvancedParceling : public DM::Module
 	DM_DECLARE_NODE(AdvancedParceling)
 	private:
 		DM::View resultView;
+		DM::View face_nodes;
 	DM::View inputView;
 	DM::View bbs;
 
@@ -24,6 +25,8 @@ class DM_HELPER_DLL_EXPORT AdvancedParceling : public DM::Module
 	double tol;
 
 
+
+
 public:
 	AdvancedParceling();
 	void run();
@@ -31,7 +34,7 @@ public:
 	void createSubdevision(DM::System * sys,  DM::Face * f, int gen);
 
 	/** @brief creates final parceling and identify edges, transfers results from working sys to sys */
-	void createFinalFaces(DM::System * workingsys, DM::System *sys, DM::Face *orig, DM::View v);
+	void createFinalFaces(DM::System * workingsys, DM::System *sys, DM::Face *orig, DM::View v, DM::SpatialNodeHashMap & sphs);
 
 	/** @brief extract faces and returns vector of face nodes*/
 	std::vector<DM::Node *> extractCGALFace(Arrangement_2::Ccb_halfedge_const_circulator hec, DM::SpatialNodeHashMap & sphs);

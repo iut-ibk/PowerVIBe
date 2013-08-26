@@ -102,13 +102,14 @@ void AdvancedParceling::setResultView(const DM::View &value)
 	resultView = value;
 }
 AdvancedParceling::AdvancedParceling() :
-	tol(0.000001)
+	tol(0.0001)
 {
 	this->inputView = DM::View("CITYBLOCK", DM::FACE, DM::READ);
 	this->inputView.getAttribute("selected");
 	this->resultView = DM::View("PARCEL", DM::FACE, DM::WRITE);
 	this->resultView.addAttribute("selected");
 	this->resultView.addAttribute("generation");
+
 	this->bbs = DM::View("BBS", DM::FACE, DM::WRITE);
 
 	aspectRatio = 2;
@@ -132,8 +133,6 @@ AdvancedParceling::AdvancedParceling() :
 
 	this->addData("city", datastream);
 
-
-
 }
 
 void AdvancedParceling::init()
@@ -150,24 +149,29 @@ void AdvancedParceling::init()
 	resultView = DM::View(OutputViewName, DM::FACE, DM::WRITE);
 	this->resultView.addAttribute("selected");
 	this->resultView.addAttribute("generation");
+	face_nodes = DM::View("FACE_NODES", DM::NODE, DM::WRITE);
+	face_nodes.addAttribute("street_side");
 
 	std::vector<DM::View> datastream;
 
-
 	datastream.push_back(inputView);
 	datastream.push_back(resultView);
+	datastream.push_back(face_nodes);
 
 	this->addData("city", datastream);
 }
 
 /** The method is based on the minial bounding box */
 void AdvancedParceling::run(){
+
 	DM::Logger(DM::Warning) << "Redevelopment not finished yet - offset is still missing";
 	if (this->aspectRatio < 1) {
 		DM::Logger(DM::Warning) <<  "Aspect Ration < 1 please, just values > 1 are used";
 	}
 
 	DM::System * city = this->getData("city");
+
+   DM::SpatialNodeHashMap sphs(city,100,false);
 
 	mforeach (DM::Component * c, city->getAllComponentsInView(this->inputView)) {
 		DM::System workingSys;
@@ -180,7 +184,7 @@ void AdvancedParceling::run(){
 		DM::Face * fnew = TBVectorData::CopyFaceGeometryToNewSystem(f, &workingSys);
 		workingSys.addComponentToView(fnew, this->inputView);
 		this->createSubdevision(&workingSys, fnew, 0);
-		createFinalFaces(&workingSys, city, fnew, this->resultView);
+		createFinalFaces(&workingSys, city, fnew, this->resultView, sphs);
 		DM::Logger(DM::Debug) << "end parceling";
 	}
 
@@ -191,6 +195,7 @@ void AdvancedParceling::run(){
 		DM::Face * f = static_cast<DM::Face *> (c);
 		f->addAttribute("selected", 0);
 	}
+
 }
 
 void AdvancedParceling::createSubdevision(DM::System * sys,  DM::Face *f, int gen)
@@ -265,8 +270,11 @@ std::vector<DM::Node *> AdvancedParceling::extractCGALFace(Arrangement_2::Ccb_ha
 	do{
 		double x = CGAL::to_double(curr->source()->point().x());
 		double y = CGAL::to_double(curr->source()->point().y());
-		DM::Node * n = sphs.addNode(x,y,0,0);
+		DM::Node * n = sphs.addNode(x,y,0,0, this->face_nodes);
+		if (curr->twin()->face()->is_unbounded())
+			n->addAttribute("street_side", 1);
 		vp.push_back(n);
+
 	}
 	while(++curr != hec );
 
@@ -298,14 +306,12 @@ bool AdvancedParceling::checkIfHoleFilling(DM::Face * orig, DM::Face * face_new)
 	return false;
 }
 
-void AdvancedParceling::createFinalFaces(DM::System *workingsys, DM::System * sys, DM::Face * orig, DM::View v)
+void AdvancedParceling::createFinalFaces(DM::System *workingsys, DM::System * sys, DM::Face * orig, DM::View v, DM::SpatialNodeHashMap &sphs)
 {
-	DM::SpatialNodeHashMap sphs(sys,100,false);
+
 	Arrangement_2::Face_const_iterator              fit;
 	Segment_list_2									segments;
 	Arrangement_2									arr;
-
-
 
 	segments = DM::CGALGeometry_P::Snap_Rounding_2D(workingsys, v,tol);
 	insert (arr, segments.begin(), segments.end());
@@ -338,6 +344,9 @@ void AdvancedParceling::createFinalFaces(DM::System *workingsys, DM::System * sy
 			sys->removeComponentFromView(f, v);
 			sys->removeFace(f->getUUID());
 		}
+
+
+
 	}
 }
 
