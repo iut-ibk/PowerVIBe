@@ -101,32 +101,44 @@ void AdvancedParceling::setResultView(const DM::View &value)
 {
 	resultView = value;
 }
-AdvancedParceling::AdvancedParceling() :
-	tol(0.0001)
+AdvancedParceling::AdvancedParceling()
 {
-	this->inputView = DM::View("CITYBLOCK", DM::FACE, DM::READ);
-	this->inputView.getAttribute("selected");
-	this->resultView = DM::View("PARCEL", DM::FACE, DM::WRITE);
-	this->resultView.addAttribute("selected");
-	this->resultView.addAttribute("generation");
 
-	this->bbs = DM::View("BBS", DM::FACE, DM::WRITE);
-
+	//Parameter Definition
 	aspectRatio = 2;
-	length = 100;
-	offset = 1;
-	remove_new = false;
-
 	this->addParameter("AspectRatio", DM::DOUBLE, &aspectRatio);
+
+	length = 100;
 	this->addParameter("Length", DM::DOUBLE, &length);
+
+	offset = 1;
 	this->addParameter("offset", DM::DOUBLE, & offset);
+
+	remove_new = false;
 	this->addParameter("remove_new", DM::BOOL, & remove_new);
 
 	InputViewName = "SUPERBLOCK";
-	OutputViewName = "CITYBLOCK";
-
 	this->addParameter("INPUTVIEW", DM::STRING, &InputViewName);
+
+	OutputViewName = "CITYBLOCK";
 	this->addParameter("OUTPUTVIEW", DM::STRING, &OutputViewName);
+
+	tol = 0.001; //should not be to small
+	this->addParameter("tolerance", DM::DOUBLE, &tol);
+
+	debug = false;
+	this->addParameter("debug", DM::BOOL, &debug);
+
+	//Datastream
+	this->inputView = DM::View("CITYBLOCK", DM::FACE, DM::READ);
+	this->inputView.getAttribute("selected");
+
+	this->resultView = DM::View("PARCEL", DM::FACE, DM::WRITE);
+	this->resultView.addAttribute("selected");
+
+	this->resultView.addAttribute("generation");
+
+	this->bbs = DM::View("BBS", DM::FACE, DM::WRITE);
 
 	std::vector<DM::View> datastream;
 	datastream.push_back(DM::View("dummy", DM::SUBSYSTEM, DM::MODIFY));
@@ -157,6 +169,8 @@ void AdvancedParceling::init()
 	datastream.push_back(inputView);
 	datastream.push_back(resultView);
 	datastream.push_back(face_nodes);
+	if (debug)
+		datastream.push_back(DM::View("faces_debug", DM::FACE, DM::WRITE));
 
 	this->addData("city", datastream);
 }
@@ -270,7 +284,7 @@ std::vector<DM::Node *> AdvancedParceling::extractCGALFace(Arrangement_2::Ccb_ha
 	do{
 		double x = CGAL::to_double(curr->source()->point().x());
 		double y = CGAL::to_double(curr->source()->point().y());
-		DM::Node * n = sphs.addNode(x,y,0,0, this->face_nodes);
+		DM::Node * n = sphs.addNode(x,y,0,tol, this->face_nodes);
 		if (curr->twin()->face()->is_unbounded())
 			n->addAttribute("street_side", 1);
 		vp.push_back(n);
@@ -290,9 +304,11 @@ bool AdvancedParceling::checkIfHoleFilling(DM::Face * orig, DM::Face * face_new)
 				continue;
 			DM::Node * en = face_new->getNodePointers()[0];
 			DM::Node n(en->getX() + tol*10.* i, en->getY() + tol*10. * i, en->getZ() + tol*10.* i);
-			DM::Logger(DM::Debug)<< "Number of holes" << orig->getHolePointers().size();
-			DM::Logger(DM::Debug) << "Face new" << en->getX() + 1 * i << " " << en->getY() + 1;
-			TBVectorData::PrintFace(face_new, DM::Debug);
+			if (debug){
+				DM::Logger(DM::Debug)<< "Number of holes" << orig->getHolePointers().size();
+				DM::Logger(DM::Debug) << "Face new" << en->getX() + 1 * i << " " << en->getY() + 1;
+				TBVectorData::PrintFace(face_new, DM::Debug);
+			}
 			DM::Logger(DM::Debug) << "------";
 			if (DM::CGALGeometry::NodeWithinFace(face_new, n)) { //Valid Point
 				if (DM::CGALGeometry::NodeWithinFace(orig, n)) { //if outside the origin face this means there is a hole
@@ -314,10 +330,23 @@ void AdvancedParceling::createFinalFaces(DM::System *workingsys, DM::System * sy
 	Arrangement_2									arr;
 
 	segments = DM::CGALGeometry_P::Snap_Rounding_2D(workingsys, v,tol);
+	//segments = DM::CGALGeometry_P::EdgeToSegment2D(workingsys, v);
 	insert (arr, segments.begin(), segments.end());
 
-	int faceCounter = 0;
+	int faceCounter_orig = 0;
 
+	if (debug) {
+		mforeach (DM::Component * cmp, workingsys->getAllComponentsInView(v)) {
+			DM::Face * f = dynamic_cast<DM::Face*>(cmp);
+			DM::Face * f1 = TBVectorData::CopyFaceGeometryToNewSystem(f, sys);
+			sys->addComponentToView(f1, DM::View("faces_debug", DM::FACE, DM::WRITE));
+			faceCounter_orig++;
+
+		}
+	}
+
+	int faceCounter = 0;
+	int removed_faces = 0;
 	for (fit = arr.faces_begin(); fit != arr.faces_end(); ++fit) {
 		if (fit->is_unbounded()) { //if unbound I don't want you
 			continue;
@@ -339,15 +368,20 @@ void AdvancedParceling::createFinalFaces(DM::System *workingsys, DM::System * sy
 			f->addHole(hole);
 		}
 
+
 		if (checkIfHoleFilling(orig, f)) {
 			DM::Logger(DM::Debug) << "Remove face";
 			sys->removeComponentFromView(f, v);
 			sys->removeFace(f->getUUID());
+			removed_faces++;
 		}
 
-
-
 	}
+
+	DM::Logger(DM::Debug) << "Faces in Arrangment" << arr.number_of_faces();
+	DM::Logger(DM::Debug) << "Input Faces " << faceCounter_orig;
+	DM::Logger(DM::Debug) << "Created Faces " << faceCounter;
+	DM::Logger(DM::Debug) << "Removed Faces " << removed_faces;
 }
 
 

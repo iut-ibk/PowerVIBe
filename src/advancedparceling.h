@@ -24,6 +24,8 @@ class DM_HELPER_DLL_EXPORT AdvancedParceling : public DM::Module
 
 	double tol;
 
+	bool debug;
+
 
 
 
