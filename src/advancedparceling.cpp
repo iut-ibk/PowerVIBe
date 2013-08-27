@@ -123,7 +123,7 @@ AdvancedParceling::AdvancedParceling()
 	OutputViewName = "CITYBLOCK";
 	this->addParameter("OUTPUTVIEW", DM::STRING, &OutputViewName);
 
-	tol = 0.001; //should not be to small
+	tol = 0.00001; //should not be to small
 	this->addParameter("tolerance", DM::DOUBLE, &tol);
 
 	debug = false;
@@ -182,10 +182,13 @@ void AdvancedParceling::run(){
 	if (this->aspectRatio < 1) {
 		DM::Logger(DM::Warning) <<  "Aspect Ration < 1 please, just values > 1 are used";
 	}
+	if (this->aspectRatio > 2) {
+		DM::Logger(DM::Warning) <<  "Aspect Ration > 2nut supported";
+	}
 
 	DM::System * city = this->getData("city");
 
-   DM::SpatialNodeHashMap sphs(city,100,false);
+	DM::SpatialNodeHashMap sphs(city,100,false);
 
 	mforeach (DM::Component * c, city->getAllComponentsInView(this->inputView)) {
 		DM::System workingSys;
@@ -214,6 +217,7 @@ void AdvancedParceling::run(){
 
 void AdvancedParceling::createSubdevision(DM::System * sys,  DM::Face *f, int gen)
 {
+	bool split_length = false;
 	std::vector<DM::Node> box;
 	std::vector<double> size;
 
@@ -233,18 +237,23 @@ void AdvancedParceling::createSubdevision(DM::System * sys,  DM::Face *f, int ge
 	double x_c = center.getX();
 	double y_c = center.getY();
 
-	if (2*this->length > size[0]) {
-		sys->addComponentToView(f, this->resultView);
-		return;
+	if (2*this->length > size[0]) { //If length split is done, start with width split
+		if ( (this->length / this->aspectRatio) * 2 >   size[1]) { //width
+			sys->addComponentToView(f, this->resultView);
+			return;
+		}
+		split_length = true;
+
 	}
-	//Create New Face
-	int elements = size[1]/(this->length);
-	elements = 2;
-	for (int i = 0; i < 2; i++) {
+	int elements = 2;
+	if (split_length)
+		elements = size[1] / (this->length / this->aspectRatio);
+	for (int i = 0; i < elements; i++) {
 		double l = size[0];
 		double w = size[1];
 		QRectF r1 (-l/2.+ i*l/(double)elements,  -w/2-10, l/(double)elements,w+10);
 
+		//Rotate Intersection Rect
 		QTransform t;
 		t.rotate(alpha);
 
@@ -259,7 +268,7 @@ void AdvancedParceling::createSubdevision(DM::System * sys,  DM::Face *f, int ge
 			QPointF & p = intersection[i];
 			intersection_p.push_back(sys->addNode(DM::Node(p.x(), p.y(), 0)));
 		}
-		intersection_p.push_back(intersection_p[0]);
+
 		DM::Face * bb = sys->addFace(intersection_p, bbs);
 
 		bb->addAttribute("generation", gen);
@@ -330,7 +339,6 @@ void AdvancedParceling::createFinalFaces(DM::System *workingsys, DM::System * sy
 	Arrangement_2									arr;
 
 	segments = DM::CGALGeometry_P::Snap_Rounding_2D(workingsys, v,tol);
-	//segments = DM::CGALGeometry_P::EdgeToSegment2D(workingsys, v);
 	insert (arr, segments.begin(), segments.end());
 
 	int faceCounter_orig = 0;

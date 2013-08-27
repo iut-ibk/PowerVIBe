@@ -36,34 +36,34 @@ using namespace DM;
 
 class DM_HELPER_DLL_EXPORT PlaceGWHP : public Module
 {
-    DM_DECLARE_NODE(PlaceGWHP)
-    
-    private:
-        DM::View buildings;
-    DM::View parcels;
-    DM::View ghwps;
-    DM::View thermal_effected_area;
-    DM::View city_view;
-    const double pi;
-    std::string database_location;
-    std::vector<DM::Face*> thermalFields;
+	DM_DECLARE_NODE(PlaceGWHP)
 
-    std::string reportFile;
-    bool deepWell;
-    bool withCenterBuilding;
+	private:
+		DM::View buildings;
+	DM::View parcels;
+	DM::View ghwps;
+	DM::View thermal_effected_area;
+	DM::View city_view;
+	const double pi;
+	std::string database_location;
+	std::vector<DM::Face*> thermalFields;
 
-    
+	std::string reportFile;
+	bool deepWell;
+	bool withCenterBuilding;
+
+
 public:
-    PlaceGWHP();
-    void run();
-    
-    void drawTemperaturAnomalyComplex(DM::Node p, double l1, double l2, double b, double T, DM::System * sys, DM::View v);
-    std::vector<DM::Node> drawTemperaturAnomalySimple(DM::Node p, double l1, double l2, double b, double T, DM::System * sys, DM::View v);
-    double calcuateHydraulicEffectedArea(double Q, double kf, double IG, double kfhTokfh);
-    double calculateWaterAmount(double demandHeating, double deltaT);
+	PlaceGWHP();
+	void run();
 
-    bool checkThermalEffectedAreas(System *sys, const std::vector<DM::Node > & nodes, const std::vector<DM::Node > & possible_nodes, DM::Node & ressNode, DM::Face * parcel, double l1, double l2, double b, double hydrauliceffected);
-    void createReport(System *city);
+	void drawTemperaturAnomalyComplex(DM::Node p, double l1, double l2, double b, double T, DM::System * sys, DM::View v);
+	std::vector<DM::Node> drawTemperaturAnomalySimple(DM::Node p, double l1, double l2, double b, double T, DM::System * sys, DM::View v);
+	double calcuateHydraulicEffectedArea(double Q, double kf, double IG, double kfhTokfh);
+	double calculateWaterAmount(double demandHeating, double deltaT);
+
+	bool checkThermalEffectedAreas(System *sys, const std::vector<DM::Node > & nodes, const std::vector<DM::Node > & possible_nodes, DM::Node & ressNode, DM::Face * parcel, double l1, double l2, double b, double hydrauliceffected);
+	void createReport(System *city);
 };
 
 #endif /* defined(__DynaMind_ToolBox__placegwhp__) */

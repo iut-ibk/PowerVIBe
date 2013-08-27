@@ -39,25 +39,25 @@ typedef QMap<QString, QVector<double> > value_map;
 class ValueMap : public value_map
 {
 public:
-    ValueMap();
-    ValueMap(QStringList);
+	ValueMap();
+	ValueMap(QStringList);
 
-    
+
 };
 
 class ThermalRegenerationDB
 {
 private:
-    ValueMap database;
-    QStringList listVals;
-    ValueMap interpolate(ValueMap m, QString index, double val);
+	ValueMap database;
+	QStringList listVals;
+	ValueMap interpolate(ValueMap m, QString index, double val);
 
 public:
-    ThermalRegenerationDB(std::string filename);
-    DM::Component getThermalRegernationField(double I, double TempR,double kf, double kfHzuV, double Q, double BD, double Disp);
-    
-    
-    
+	ThermalRegenerationDB(std::string filename);
+	DM::Component getThermalRegernationField(double I, double TempR,double kf, double kfHzuV, double Q, double BD, double Disp);
+
+
+
 };
 
 #endif /* defined(__DynaMind_ToolBox__thermalregenerationDB__) */

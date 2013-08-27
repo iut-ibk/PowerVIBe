@@ -33,29 +33,29 @@ using namespace DM;
 
 class DM_HELPER_DLL_EXPORT ModernBuilding: public Module
 {
-     DM_DECLARE_NODE(ModernBuilding)
-     private:
-             DM::View buildings;
-             DM::View geometry;
-             DM::View footprints;
-             double heatingT;
-             double coolingT;
-             int buildyear;
-             int stories;
-             double alpha;
-             double l;
-             double b;
+	DM_DECLARE_NODE(ModernBuilding)
+	private:
+		DM::View buildings;
+	DM::View geometry;
+	DM::View footprints;
+	double heatingT;
+	double coolingT;
+	int buildyear;
+	int stories;
+	double alpha;
+	double l;
+	double b;
 
-             double overhang;
-             double parapet;
-             double w_height;
-             double w_width;
-             double w_distance;
+	double overhang;
+	double parapet;
+	double w_height;
+	double w_width;
+	double w_distance;
 
 
 public:
-    ModernBuilding();
-    void run();
+	ModernBuilding();
+	void run();
 };
 
 #endif // MODERNBUILDING_H

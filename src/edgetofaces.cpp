@@ -33,56 +33,56 @@ DM_DECLARE_NODE_NAME(EdgeToFaces, Geometry)
 
 void EdgeToFaces::init()
 {
-    if (edgeLayerName.empty())
-        return;
-    if (newFaceName.empty())
-        return;
+	if (edgeLayerName.empty())
+		return;
+	if (newFaceName.empty())
+		return;
 
-    edgeLayer = DM::View(edgeLayerName, DM::EDGE, DM::READ);
-    newFace = DM::View(newFaceName, DM::FACE, DM::WRITE);
-    std::vector<DM::View> datastream;
-    datastream.push_back(edgeLayer);
-    datastream.push_back(newFace);
+	edgeLayer = DM::View(edgeLayerName, DM::EDGE, DM::READ);
+	newFace = DM::View(newFaceName, DM::FACE, DM::WRITE);
+	std::vector<DM::View> datastream;
+	datastream.push_back(edgeLayer);
+	datastream.push_back(newFace);
 
-    this->addData("Data", datastream);
+	this->addData("Data", datastream);
 
 
 }
 
 EdgeToFaces::EdgeToFaces()
 {
-    edgeLayerName = "";
-    newFaceName = "";
-    this->addParameter("edgeLayerName", DM::STRING, &edgeLayerName);
-    this->addParameter("newFaceName", DM::STRING, &newFaceName);
+	edgeLayerName = "";
+	newFaceName = "";
+	this->addParameter("edgeLayerName", DM::STRING, &edgeLayerName);
+	this->addParameter("newFaceName", DM::STRING, &newFaceName);
 }
 
 
 
 void EdgeToFaces::run()
 {
-    DM::System * sys = this->getData("Data");
-    DM::System s = CGALGeometry::ShapeFinder(sys,edgeLayer, newFace);
+	DM::System * sys = this->getData("Data");
+	DM::System s = CGALGeometry::ShapeFinder(sys,edgeLayer, newFace);
 
-    std::vector<std::string> uuids = s.getUUIDs(newFace);
+	std::vector<std::string> uuids = s.getUUIDs(newFace);
 
 
-    foreach(std::string uuid, uuids) {
-        SpatialNodeHashMap spnh(sys, 1,false);
-        DM::Face * f = s.getFace(uuid);
-        std::vector<DM::Node*> nl_old = TBVectorData::getNodeListFromFace(&s, f);
-        std::vector<DM::Node*> nl;
-        for  (unsigned int i = 0; i < nl_old.size()-1; i++) {
-            if (spnh.findNode(nl_old[i]->getX(), nl_old[i]->getY(), 0.001)) {
-                Logger(Debug) << "Node exists already, not added";
-                continue;
-            }
-            DM::Node * n = spnh.addNode(nl_old[i]->getX(), nl_old[i]->getY(),nl_old[i]->getZ(), 0.001);
-            nl.push_back(n);
-        }
-        nl.push_back(nl[0]);
-        sys->addFace(nl, newFace);
-    }
+	foreach(std::string uuid, uuids) {
+		SpatialNodeHashMap spnh(sys, 1,false);
+		DM::Face * f = s.getFace(uuid);
+		std::vector<DM::Node*> nl_old = TBVectorData::getNodeListFromFace(&s, f);
+		std::vector<DM::Node*> nl;
+		for  (unsigned int i = 0; i < nl_old.size()-1; i++) {
+			if (spnh.findNode(nl_old[i]->getX(), nl_old[i]->getY(), 0.001)) {
+				Logger(Debug) << "Node exists already, not added";
+				continue;
+			}
+			DM::Node * n = spnh.addNode(nl_old[i]->getX(), nl_old[i]->getY(),nl_old[i]->getZ(), 0.001);
+			nl.push_back(n);
+		}
+		nl.push_back(nl[0]);
+		sys->addFace(nl, newFace);
+	}
 
 
 }

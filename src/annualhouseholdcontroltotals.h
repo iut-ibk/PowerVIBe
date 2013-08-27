@@ -7,15 +7,15 @@
 using namespace DM;
 class DM_HELPER_DLL_EXPORT AnnualHouseholdControlTotals : public Module
 {
-    DM_DECLARE_NODE(AnnualHouseholdControlTotals)
-    private:
-            DM::View city;
-            double growthRate;
-            int startYear;
-            int endYear;
-    public:
-        AnnualHouseholdControlTotals();
-    void run();
+	DM_DECLARE_NODE(AnnualHouseholdControlTotals)
+	private:
+		DM::View city;
+	double growthRate;
+	int startYear;
+	int endYear;
+public:
+	AnnualHouseholdControlTotals();
+	void run();
 
 };
 

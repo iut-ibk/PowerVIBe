@@ -10,7 +10,7 @@ class DM_HELPER_DLL_EXPORT AdvancedParceling : public DM::Module
 	DM_DECLARE_NODE(AdvancedParceling)
 	private:
 		DM::View resultView;
-		DM::View face_nodes;
+	DM::View face_nodes;
 	DM::View inputView;
 	DM::View bbs;
 

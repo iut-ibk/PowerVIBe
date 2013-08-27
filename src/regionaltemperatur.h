@@ -5,13 +5,13 @@
 
 class DM_HELPER_DLL_EXPORT RegionalTemperatur : public DM::Module
 {
-    DM_DECLARE_NODE(RegionalTemperatur)
-private:
-        DM::View ThermalRegion;
+	DM_DECLARE_NODE(RegionalTemperatur)
+	private:
+		DM::View ThermalRegion;
 public:
 
-    RegionalTemperatur();
-    void run();
+	RegionalTemperatur();
+	void run();
 };
 
 #endif // REGIONALTEMPERATUR_H

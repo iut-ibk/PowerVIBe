@@ -477,7 +477,7 @@ TEST_F(UnitTestsDMPowerVIBe, AP_Holes_createFinalFaces_array) {
 			bF->addHole(h);
 		}
 	}
-		DM::SpatialNodeHashMap sphs(sys,100,false);
+	DM::SpatialNodeHashMap sphs(sys,100,false);
 	parcling.createFinalFaces(sys, ReturnSys,bF, v,sphs);
 
 
