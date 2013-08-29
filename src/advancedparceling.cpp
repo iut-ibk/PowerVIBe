@@ -182,9 +182,6 @@ void AdvancedParceling::run(){
 	if (this->aspectRatio < 1) {
 		DM::Logger(DM::Warning) <<  "Aspect Ration < 1 please, just values > 1 are used";
 	}
-	if (this->aspectRatio > 2) {
-		DM::Logger(DM::Warning) <<  "Aspect Ration > 2nut supported";
-	}
 
 	DM::System * city = this->getData("city");
 
