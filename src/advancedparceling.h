@@ -23,7 +23,7 @@ class DM_HELPER_DLL_EXPORT AdvancedParceling : public DM::Module
 	std::string OutputViewName;
 
 	double tol;
-
+	bool combined_edges;
 	bool debug;
 
 

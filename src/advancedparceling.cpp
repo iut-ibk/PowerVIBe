@@ -129,6 +129,9 @@ AdvancedParceling::AdvancedParceling()
 	debug = false;
 	this->addParameter("debug", DM::BOOL, &debug);
 
+	combined_edges = false;
+	this->addParameter("combined_edges", DM::BOOL, &combined_edges);
+
 	//Datastream
 	this->inputView = DM::View("CITYBLOCK", DM::FACE, DM::READ);
 	this->inputView.getAttribute("selected");
@@ -346,8 +349,16 @@ void AdvancedParceling::createFinalFaces(DM::System *workingsys, DM::System * sy
 			DM::Face * f1 = TBVectorData::CopyFaceGeometryToNewSystem(f, sys);
 			sys->addComponentToView(f1, DM::View("faces_debug", DM::FACE, DM::WRITE));
 			faceCounter_orig++;
-
 		}
+	}
+	if (!combined_edges){
+		mforeach (DM::Component * cmp, workingsys->getAllComponentsInView(v)) {
+			DM::Face * f = dynamic_cast<DM::Face*>(cmp);
+			DM::Face * f1 = TBVectorData::CopyFaceGeometryToNewSystem(f, sys);
+			sys->addComponentToView(f1,v);
+			f1->addAttribute("selected", 1);
+		}
+		return;
 	}
 
 	int faceCounter = 0;
