@@ -101,6 +101,16 @@ void AdvancedParceling::setResultView(const DM::View &value)
 {
 	resultView = value;
 }
+
+bool AdvancedParceling::getCombined_edges() const
+{
+	return combined_edges;
+}
+
+void AdvancedParceling::setCombined_edges(bool value)
+{
+	combined_edges = value;
+}
 AdvancedParceling::AdvancedParceling()
 {
 

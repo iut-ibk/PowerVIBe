@@ -262,6 +262,7 @@ TEST_F(UnitTestsDMPowerVIBe, TestParceling_final_with_small_hole) {
 	parceling.setLength(0.1);
 	parceling.setAspectRatio(1);
 	parceling.setOffset(0);
+	parceling.setCombined_edges(true);
 
 	parceling.setResultView(resultView);
 	parceling.setInputView(inputView);
@@ -539,6 +540,7 @@ TEST_F(UnitTestsDMPowerVIBe, TestFinalFaces_final_small_hole) {
 	parceling.setLength(1);
 	parceling.setAspectRatio(1);
 	parceling.setOffset(0);
+	parceling.setCombined_edges(true);
 
 	parceling.setResultView(resultView);
 	parceling.setInputView(inputView);
@@ -590,6 +592,8 @@ TEST_F(UnitTestsDMPowerVIBe, AP_Holes_createFinalFaces) {
 	DM::Face * boundary = addRectangleWithHole(sys,v);
 
 	AdvancedParceling parceling;
+	parceling.setCombined_edges(true);
+
 	DM::SpatialNodeHashMap sphs(sys,100,false);
 	parceling.createFinalFaces(sys, ReturnSys,boundary, v, sphs);
 

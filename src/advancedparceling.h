@@ -55,6 +55,8 @@ public:
 	void setInputView(const DM::View &value);
 	DM::View getResultView() const;
 	void setResultView(const DM::View &value);
+	bool getCombined_edges() const;
+	void setCombined_edges(bool value);
 };
 
 #endif // ADVANCEDPARCELING_H
