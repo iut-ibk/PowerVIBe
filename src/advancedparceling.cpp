@@ -347,8 +347,10 @@ void AdvancedParceling::createFinalFaces(DM::System *workingsys, DM::System * sy
 	Arrangement_2::Face_const_iterator              fit;
 	Segment_list_2									segments;
 	Arrangement_2									arr;
-
-	segments = DM::CGALGeometry_P::Snap_Rounding_2D(workingsys, v,tol);
+	if (tol != 0)
+		segments = DM::CGALGeometry_P::Snap_Rounding_2D(workingsys, v,tol);
+	else
+		segments = DM::CGALGeometry_P::EdgeToSegment2D(workingsys, v);
 	insert (arr, segments.begin(), segments.end());
 
 	int faceCounter_orig = 0;
