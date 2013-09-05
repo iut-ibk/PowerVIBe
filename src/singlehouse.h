@@ -32,24 +32,24 @@ using namespace DM;
 
 class DM_HELPER_DLL_EXPORT SingleHouse : public Module
 {
-    DM_DECLARE_NODE(SingleHouse)
-private:
-        DM::View houses;
-        DM::View footprint;
-        DM::View building_model;
+	DM_DECLARE_NODE(SingleHouse)
+	private:
+		DM::View houses;
+	DM::View footprint;
+	DM::View building_model;
 
-        double heatingT;
-        double coolingT;
-        int buildyear;
-        int stories;
-        double alpha;
-        double l;
-        double b;
+	double heatingT;
+	double coolingT;
+	int buildyear;
+	int stories;
+	double alpha;
+	double l;
+	double b;
 
 
 public:
-    SingleHouse();
-    void run();
+	SingleHouse();
+	void run();
 };
 
 #endif // SINGLEHOUSE_H

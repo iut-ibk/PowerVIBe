@@ -31,25 +31,25 @@
 
 class ExtrudeBuildings : public DM::Module
 {
-    DM_DECLARE_NODE(ExtrudeBuildings);
+	DM_DECLARE_NODE(ExtrudeBuildings);
 private:
-    DM::View houses;
-    DM::View building_model;
-    DM::View footprints;
-    DM::View parcels;
-    DM::View cityView;
+	DM::View houses;
+	DM::View building_model;
+	DM::View footprints;
+	DM::View parcels;
+	DM::View cityView;
 
-    double minArea;
+	double minArea;
 
-    double heatingT;
-    double coolingT;
+	double heatingT;
+	double coolingT;
 
-    bool withWindows;
+	bool withWindows;
 
 
 public:
-    ExtrudeBuildings();
-    void run();
+	ExtrudeBuildings();
+	void run();
 
 };
 

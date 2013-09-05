@@ -34,19 +34,19 @@
 using namespace DM;
 class DM_HELPER_DLL_EXPORT HeatingDemand : public Module
 {
-    DM_DECLARE_NODE(HeatingDemand)
-    
-private:
-    DM::View buildings;
-    /** @brief calculate heating demand  area in m2
-      * 1960 >  75 W/m2
-      * 1995 > 50 W/m2
-      * 2000 > 15 W/m2
-      */
-    double calculateHeatingDemand(double area, int year);
+	DM_DECLARE_NODE(HeatingDemand)
+
+	private:
+		DM::View buildings;
+	/** @brief calculate heating demand  area in m2
+	  * 1960 >  75 W/m2
+	  * 1995 > 50 W/m2
+	  * 2000 > 15 W/m2
+	  */
+	double calculateHeatingDemand(double area, int year);
 public:
-    HeatingDemand();
-    void run();
+	HeatingDemand();
+	void run();
 };
 
 #endif /* defined(__DynaMind_ToolBox__heatingdemand__) */

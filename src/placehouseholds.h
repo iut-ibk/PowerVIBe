@@ -34,19 +34,19 @@ using namespace DM;
 
 class DM_HELPER_DLL_EXPORT PlaceHouseholds : public Module
 {
-    DM_DECLARE_NODE(PlaceHouseholds)
-    private:
-            DM::View grids;
-            DM::View households;
-            DM::View buildings;
-            DM::View persons;
-            int sumHouseholds(int (&hh)[5] );
-            int chooseHousehold( int (&hh)[5] );
-            int chooseBuilding(std::vector<int>& buildings);
-    public:
-        PlaceHouseholds();
-        void run();
-        std::string getHelpUrl();
+	DM_DECLARE_NODE(PlaceHouseholds)
+	private:
+		DM::View grids;
+	DM::View households;
+	DM::View buildings;
+	DM::View persons;
+	int sumHouseholds(int (&hh)[5] );
+	int chooseHousehold( int (&hh)[5] );
+	int chooseBuilding(std::vector<int>& buildings);
+public:
+	PlaceHouseholds();
+	void run();
+	std::string getHelpUrl();
 };
 
 #endif // PLACEHOUSEHOLDS_H

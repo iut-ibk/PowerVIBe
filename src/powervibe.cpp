@@ -47,21 +47,21 @@
 using namespace DM;
 
 extern "C" void DM_HELPER_DLL_EXPORT  registerModules(ModuleRegistry *registry) {
-    registry->addNodeFactory(new NodeFactory<PlaceHouseholds>());
-    registry->addNodeFactory(new NodeFactory<PlaceJobs>());
-    registry->addNodeFactory(new NodeFactory<AnnualEmploymentControl>());
-    registry->addNodeFactory(new NodeFactory<AnnualHouseholdControlTotals>());
-    registry->addNodeFactory(new NodeFactory<EdgeToFaces>());
-    registry->addNodeFactory(new NodeFactory<HouseholdPlacementDTU>());
-    registry->addNodeFactory(new NodeFactory<CreateSingleFamilyHouses>());
-    registry->addNodeFactory(new NodeFactory<HeatingDemand>());
-    registry->addNodeFactory(new NodeFactory<PlaceGWHP>());
-    registry->addNodeFactory(new NodeFactory<CreateShadows>());
-    registry->addNodeFactory(new NodeFactory<SingleHouse>());
-    registry->addNodeFactory(new NodeFactory<ModernBuilding>());
-    registry->addNodeFactory(new NodeFactory<AdvancedParceling>());
-    registry->addNodeFactory(new NodeFactory<RegionalTemperatur>());
-    registry->addNodeFactory(new NodeFactory<PlaceJobsDTU>());
-    registry->addNodeFactory(new NodeFactory<DistanceField>());
-    registry->addNodeFactory(new NodeFactory<ExtrudeBuildings>());
+	registry->addNodeFactory(new NodeFactory<PlaceHouseholds>());
+	registry->addNodeFactory(new NodeFactory<PlaceJobs>());
+	registry->addNodeFactory(new NodeFactory<AnnualEmploymentControl>());
+	registry->addNodeFactory(new NodeFactory<AnnualHouseholdControlTotals>());
+	registry->addNodeFactory(new NodeFactory<EdgeToFaces>());
+	registry->addNodeFactory(new NodeFactory<HouseholdPlacementDTU>());
+	registry->addNodeFactory(new NodeFactory<CreateSingleFamilyHouses>());
+	registry->addNodeFactory(new NodeFactory<HeatingDemand>());
+	registry->addNodeFactory(new NodeFactory<PlaceGWHP>());
+	registry->addNodeFactory(new NodeFactory<CreateShadows>());
+	registry->addNodeFactory(new NodeFactory<SingleHouse>());
+	registry->addNodeFactory(new NodeFactory<ModernBuilding>());
+	registry->addNodeFactory(new NodeFactory<AdvancedParceling>());
+	registry->addNodeFactory(new NodeFactory<RegionalTemperatur>());
+	registry->addNodeFactory(new NodeFactory<PlaceJobsDTU>());
+	registry->addNodeFactory(new NodeFactory<DistanceField>());
+	registry->addNodeFactory(new NodeFactory<ExtrudeBuildings>());
 }

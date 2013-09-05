@@ -32,17 +32,17 @@
 using namespace DM;
 class EdgeToFaces : public Module
 {
-    DM_DECLARE_NODE(EdgeToFaces)
-    private:
-        std::string newFaceName;
-    std::string edgeLayerName;
-    DM::View edgeLayer;
-    DM::View newFace;
+	DM_DECLARE_NODE(EdgeToFaces)
+	private:
+		std::string newFaceName;
+	std::string edgeLayerName;
+	DM::View edgeLayer;
+	DM::View newFace;
 
 public:
-    void init();
-    EdgeToFaces();
-    void run();
+	void init();
+	EdgeToFaces();
+	void run();
 };
 
 #endif // EDGETOFACES_H

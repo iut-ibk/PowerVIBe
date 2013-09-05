@@ -35,19 +35,19 @@ using namespace DM;
 
 class DM_HELPER_DLL_EXPORT PlaceJobs : public Module
 {
-    DM_DECLARE_NODE(PlaceJobs)
-    private:
-                DM::View grids;
-                DM::View jobs;
-                DM::View buildings;
+	DM_DECLARE_NODE(PlaceJobs)
+	private:
+		DM::View grids;
+	DM::View jobs;
+	DM::View buildings;
 
-                DM::View households;
-                DM::View persons;
+	DM::View households;
+	DM::View persons;
 
 public:
-    void run();
-    PlaceJobs();
-    std::string getHelpUrl();
+	void run();
+	PlaceJobs();
+	std::string getHelpUrl();
 };
 
 #endif // PLACEJOBS_H

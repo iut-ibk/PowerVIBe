@@ -34,16 +34,16 @@ using namespace DM;
 
 class DM_HELPER_DLL_EXPORT AnnualEmploymentControl : public Module
 {
-    DM_DECLARE_NODE(AnnualEmploymentControl)
-private:
-        DM::View city;
-        double growthRate;
-        int startYear;
-        int endYear;
+	DM_DECLARE_NODE(AnnualEmploymentControl)
+	private:
+		DM::View city;
+	double growthRate;
+	int startYear;
+	int endYear;
 public:
-    AnnualEmploymentControl();
-    void run();
-    std::string getHelpUrl();
+	AnnualEmploymentControl();
+	void run();
+	std::string getHelpUrl();
 };
 
 #endif // ANNUALEMPLOYMENTCONTROL_H

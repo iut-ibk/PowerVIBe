@@ -29,36 +29,36 @@ DM_DECLARE_NODE_NAME(HeatingDemand, PowerVIBe)
 
 HeatingDemand::HeatingDemand()
 {
-    buildings = DM::View("BUILDING", DM::COMPONENT, DM::READ);
-    buildings.getAttribute("floor_area");
-    buildings.getAttribute("built_year");
-    buildings.addAttribute("heating_demand");
-    buildings.addAttribute("heating_duration");
-    
-    std::vector<DM::View> data;
-    data.push_back(buildings);
-    
-    this->addData("City", data);
+	buildings = DM::View("BUILDING", DM::COMPONENT, DM::READ);
+	buildings.getAttribute("floor_area");
+	buildings.getAttribute("built_year");
+	buildings.addAttribute("heating_demand");
+	buildings.addAttribute("heating_duration");
+
+	std::vector<DM::View> data;
+	data.push_back(buildings);
+
+	this->addData("City", data);
 }
 
 void HeatingDemand::run()
 {
-    DM::System * city = this->getData("City");
-    std::vector<std::string> buildingUUIDs = city->getUUIDs(buildings);
-    foreach (std::string uuid, buildingUUIDs){
-        DM::Component * building = city->getComponent(uuid);
-        double area = building->getAttribute("floor_area")->getDouble();
-        int year = (int) building->getAttribute("built_year")->getDouble();
-        building->addAttribute("heating_demand", calculateHeatingDemand(area, year));
-        building->addAttribute("heating_duration", 2000);
-    }
+	DM::System * city = this->getData("City");
+	std::vector<std::string> buildingUUIDs = city->getUUIDs(buildings);
+	foreach (std::string uuid, buildingUUIDs){
+		DM::Component * building = city->getComponent(uuid);
+		double area = building->getAttribute("floor_area")->getDouble();
+		int year = (int) building->getAttribute("built_year")->getDouble();
+		building->addAttribute("heating_demand", calculateHeatingDemand(area, year));
+		building->addAttribute("heating_duration", 2000);
+	}
 }
 
 double HeatingDemand::calculateHeatingDemand(double area, int year) {
-    double fw = 75;
-    if (year > 1995)
-        fw = 50;
-    if (year > 2000)
-        fw = 15;
-    return area * fw;
+	double fw = 75;
+	if (year > 1995)
+		fw = 50;
+	if (year > 2000)
+		fw = 15;
+	return area * fw;
 }
