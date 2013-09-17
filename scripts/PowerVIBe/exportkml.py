@@ -2,6 +2,7 @@
 # -*- coding: utf8 -*-
 from pydynamind import *
 from pydmtoolbox import *
+import pydmextensions
 from collada import *
 import matplotlib.delaunay as triang
 import numpy as np
@@ -207,7 +208,10 @@ class ExportKML(Module):
                 for n_uuid in nodes:
                     n = city.getNode(n_uuid)
                     p_nodes.append(n)
-                p_nodes.reverse()
+                if pydmextensions.CGALGeometry_CheckOrientation(f.getNodePointers()) == False:
+                    p_nodes.reverse()
+                p_nodes.append(p_nodes[0])
+             
                 nodes_transformed = []
                 for n in p_nodes:
                         nodes_transformed.append(self.transformCoorindate(n))
