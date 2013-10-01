@@ -8,7 +8,7 @@
 #include <tbvectordata.h>
 #include <cgalgeometry.h>
 
-DM_DECLARE_NODE_NAME(AdvancedParceling, CityBlocks)
+DM_DECLARE_NODE_NAME(AdvancedParceling, BlockCity)
 
 //Helper
 void print_ccb (Arrangement_2::Ccb_halfedge_const_circulator circ)
