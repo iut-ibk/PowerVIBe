@@ -38,6 +38,8 @@ class EdgeToFaces : public Module
 	std::string edgeLayerName;
 	DM::View edgeLayer;
 	DM::View newFace;
+	double tolerance;
+	bool snapping;
 
 public:
 	void init();
