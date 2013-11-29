@@ -25,6 +25,7 @@ class DM_HELPER_DLL_EXPORT AdvancedParceling : public DM::Module
 	double tol;
 	bool combined_edges;
 	bool debug;
+	bool splitShortSide;
 
 
 

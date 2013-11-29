@@ -142,6 +142,9 @@ AdvancedParceling::AdvancedParceling()
 	combined_edges = false;
 	this->addParameter("combined_edges", DM::BOOL, &combined_edges);
 
+	splitShortSide = false;
+	this->addParameter("splitShortSide", DM::BOOL, &splitShortSide);
+
 	//Datastream
 	this->inputView = DM::View("CITYBLOCK", DM::FACE, DM::READ);
 	this->inputView.getAttribute("selected");
@@ -233,12 +236,12 @@ void AdvancedParceling::createSubdevision(DM::System * sys,  DM::Face *f, int ge
 
 	double alpha = DM::CGALGeometry::CalculateMinBoundingBox(TBVectorData::getNodeListFromFace(sys, f), box, size);
 
+
 	DM::Face * bb;
 	std::vector<DM::Node*> l_bb;
 	foreach (DM::Node  n, box) {
 		l_bb.push_back(sys->addNode(n));
 	}
-	l_bb.push_back(l_bb[0]);
 
 	bb = sys->addFace(l_bb);
 
@@ -247,21 +250,37 @@ void AdvancedParceling::createSubdevision(DM::System * sys,  DM::Face *f, int ge
 	double x_c = center.getX();
 	double y_c = center.getY();
 
-	if (2*this->length > size[0]) { //If length split is done, start with width split
-		if ( (this->length / this->aspectRatio) * 2 >   size[1]) { //width
+	double split_l = size[0];
+	double split_width = size[1];
+
+	if (2*this->length > split_l) {
+		if ( (this->length / this->aspectRatio) * 2 >   split_width) { //width
 			sys->addComponentToView(f, this->resultView);
 			return;
 		}
-		split_length = true;
-
 	}
+
+	if (this->splitShortSide) {
+		 split_l = size[1];
+		 split_width = size[0];
+	}
+	if (2*this->length > split_l)
+		split_length = true;
 	int elements = 2;
-	if (split_length)
-		elements = size[1] / (this->length / this->aspectRatio);
+	if (split_length) {
+		if(!this->splitShortSide)
+			elements = size[1] / (this->length / this->aspectRatio);
+		else
+			elements = size[0] / (this->length / this->aspectRatio);
+	}
 	for (int i = 0; i < elements; i++) {
 		double l = size[0];
 		double w = size[1];
-		QRectF r1 (-l/2.+ i*l/(double)elements,  -w/2-10, l/(double)elements,w+10);
+		QRectF r1;
+		//if (!this->splitShortSide)
+			r1 = QRectF(-l/2.+ i*l/(double)elements,  -w/2-10, l/(double)elements,w+10);
+		if (this->splitShortSide && !split_length)
+			r1 = QRectF(-l/2.-10,  -w/2. + i*w/(double)elements, l + 10,w/(double)elements);
 
 		//Rotate Intersection Rect
 		QTransform t;
