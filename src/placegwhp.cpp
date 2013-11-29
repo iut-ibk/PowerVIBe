@@ -196,11 +196,11 @@ void PlaceGWHP::run()
 												 parcel->getAttribute("kfhTokfh")->getDouble());
 
 		//Logger(Debug) << d;
-		std::vector<DM::Node> offsetNodes = CGALGeometry::OffsetPolygon(TBVectorData::getNodeListFromFace(city, parcel), d);
+		std::vector<std::vector<DM::Node> > offsetNodes = CGALGeometry::OffsetPolygon(TBVectorData::getNodeListFromFace(city, parcel), d);
 
 		DM::System sys_tmp;
 
-		DM::Face* parcel_offset = TBVectorData::AddFaceToSystem(&sys_tmp, offsetNodes);
+		DM::Face* parcel_offset = TBVectorData::AddFaceToSystem(&sys_tmp, offsetNodes[0]);
 
 		if (!parcel_offset)
 			continue;
