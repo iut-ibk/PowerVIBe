@@ -32,29 +32,27 @@ DM_DECLARE_NODE_NAME(PlaceJobs, PowerVIBe)
 PlaceJobs::PlaceJobs()
 {
 	grids = DM::View("GRID", DM::FACE, DM::READ);
-	grids.getAttribute("jobs");
-	grids.getAttribute("BUILDING");
+	grids.addAttribute("jobs", "BUILDING", DM::READ);
+	grids.addAttribute("BUILDING", "BUILDING", DM::READ);
 
 	buildings = DM::View("BUILDING",  DM::FACE, DM::READ);
-	buildings.addAttribute("non_residential_sqft");
+	buildings.addAttribute("non_residential_sqft", DM::Attribute::DOUBLE, DM::WRITE);
 
 	households = DM::View("HOUSEHOLD", DM::COMPONENT, DM::READ);
-	households.addAttribute("workers");
-	households.getAttribute("PERSON");
+	households.addAttribute("workers", DM::Attribute::DOUBLE, DM::WRITE);
+	households.addAttribute("PERSON", "PERSON", DM::READ);
 
 	persons = DM::View("PERSON", DM::COMPONENT, DM::READ);
-	persons.getAttribute("id");
+	persons.addAttribute("id", DM::Attribute::DOUBLE, DM::READ);
 
 	jobs = DM::View("JOB",  DM::COMPONENT ,DM::WRITE);
-	jobs.addAttribute("id");
-	jobs.addAttribute("home_based_status");
-	jobs.addAttribute("sector_id");
-	jobs.addAttribute("building_type");
+	jobs.addAttribute("id", DM::Attribute::DOUBLE, DM::WRITE);
+	jobs.addAttribute("home_based_status", DM::Attribute::DOUBLE, DM::WRITE);
+	jobs.addAttribute("sector_id", DM::Attribute::DOUBLE, DM::WRITE);
+	jobs.addAttribute("building_type", DM::Attribute::DOUBLE, DM::WRITE);
 
-
-	jobs.addLinks("BUILDING", buildings);
-	buildings.addLinks("JOB", jobs);
-
+	jobs.addAttribute("BUILDING", buildings.getName(), DM::WRITE);
+	buildings.addAttribute("JOB", jobs.getName(), DM::WRITE);
 
 	std::vector<DM::View> dataset;
 	dataset.push_back(grids);
@@ -69,12 +67,12 @@ PlaceJobs::PlaceJobs()
 void PlaceJobs::run() {
 	DM::System * city = this->getData("City");
 
-	std::vector<std::string> PersonsUUIDs = city->getUUIDsOfComponentsInView(persons);
+	std::vector<Component*> personCmps = city->getAllComponentsInView(persons);
 	std::vector<int> person_rand_int_id;
-	for (unsigned int i = 0; i < PersonsUUIDs.size(); i++) {
+	for (unsigned int i = 0; i < personCmps.size(); i++) {
 		person_rand_int_id.push_back(i);
 	}
-	for (unsigned int i = 0; i < PersonsUUIDs.size(); i++) {
+	for (unsigned int i = 0; i < personCmps.size(); i++) {
 		int index1 =  rand() % person_rand_int_id.size();
 		int index2 =  rand() % person_rand_int_id.size();
 		int p_id_tmp = person_rand_int_id[index1];
@@ -85,12 +83,12 @@ void PlaceJobs::run() {
 
 
 
-	std::vector<std::string> gridUuids = city->getUUIDsOfComponentsInView(grids);
+	std::vector<Component*> gridCmps = city->getAllComponentsInView(grids);
 
 
 	int job_id = 0;
-	foreach (std::string gUuid, gridUuids) {
-		DM::Component * grid = city->getComponent(gUuid);
+	foreach(DM::Component * grid, gridCmps) 
+	{
 		double jobsN = grid->getAttribute("jobs")->getDouble();
 
 		if (jobsN < 0.01)
@@ -98,13 +96,11 @@ void PlaceJobs::run() {
 
 		//Calcualte Total Area
 		Attribute  * attrBuildings = grid->getAttribute("BUILDING");
-		std::vector<LinkAttribute> lBuildings = attrBuildings->getLinks();
 		double building_footprints_tot = 0;
-		foreach (LinkAttribute lB, lBuildings) {
-			DM::Component * b = city->getComponent(lB.uuid);
-			building_footprints_tot += b->getAttribute("area")->getDouble();
 
-		}
+		std::vector<Component*> linkedBuildings = attrBuildings->getLinkedComponents();
+		foreach(DM::Component* b, linkedBuildings)
+			building_footprints_tot += b->getAttribute("area")->getDouble();
 
 		if (building_footprints_tot < 0.01)
 			continue;
@@ -112,20 +108,21 @@ void PlaceJobs::run() {
 		//Create Jobs
 		double JobperSqft = jobsN/building_footprints_tot;
 
-		foreach (LinkAttribute lB, lBuildings) {
-			DM::Component * b = city->getComponent(lB.uuid);
+		foreach(DM::Component* b, linkedBuildings)
+		{
 			double area = b->getAttribute("area")->getDouble();
 
 			int jobsInBuilding = (int) (area*JobperSqft + 0.5);
-			for (int i = 0; i < jobsInBuilding; i++) {
+			for (int i = 0; i < jobsInBuilding; i++) 
+			{
 				job_id++;
 				DM::Component * job = new DM::Component();
 
 				//Person ID
-				DM::Component * person = city->getComponent(PersonsUUIDs[person_rand_int_id[job_id]]);
+				DM::Component * person = personCmps[person_rand_int_id[job_id]];
 				person->addAttribute("job_id", job_id);
 
-				DM::Component * households = city->getComponent(person->getAttribute("HOUSEHOLD")->getLink().uuid);
+				DM::Component * households = person->getAttribute("HOUSEHOLD")->getLinkedComponents()[0];
 				households->addAttribute("workers", households->getAttribute("workers")->getDouble()+1);
 				job->addAttribute("id", job_id);
 				job->addAttribute("home_based_status", 0);
@@ -133,11 +130,11 @@ void PlaceJobs::run() {
 				job->addAttribute("building_type", 1);
 
 				Attribute lAttr("BUILDING");
-				lAttr.setLink("BUILDING", b->getUUID());
+				lAttr.addLink(b, "BUILDING");
 				job->addAttribute(lAttr);
 				city->addComponent(job, jobs);
 				Attribute * lBAttr = b->getAttribute("JOB");
-				lBAttr->setLink("JOB",job->getUUID());
+				lBAttr->addLink(job, "JOB");
 
 			}
 			b->addAttribute("non_residential_sqft", 20*jobsInBuilding*1.1);

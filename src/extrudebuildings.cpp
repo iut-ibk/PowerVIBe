@@ -30,7 +30,7 @@ ExtrudeBuildings::ExtrudeBuildings()
 	this->addParameter("minArea", DM::DOUBLE, &minArea);
 
 	cityView = DM::View("CITY", DM::FACE, DM::READ);
-	cityView.getAttribute("year");
+	cityView.addAttribute("year", DM::Attribute::DOUBLE, DM::READ);
 	parcels = DM::View("PARCEL", DM::FACE, DM::READ);
 
 	//parcels.addAttribute("is_built");
@@ -40,46 +40,46 @@ ExtrudeBuildings::ExtrudeBuildings()
 
 	houses = DM::View("BUILDING", DM::COMPONENT, DM::WRITE);
 
-	houses.addAttribute("centroid_x");
-	houses.addAttribute("centroid_y");
+	houses.addAttribute("centroid_x", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("centroid_y", DM::Attribute::DOUBLE, DM::WRITE);
 
-	houses.addAttribute("built_year");
-	houses.addAttribute("stories");
-	houses.addAttribute("stories_below");
-	houses.addAttribute("stories_height");
+	houses.addAttribute("built_year", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("stories", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("stories_below", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("stories_height", DM::Attribute::DOUBLE, DM::WRITE);
 
-	houses.addAttribute("floor_area");
-	houses.addAttribute("gross_floor_area");
+	houses.addAttribute("floor_area", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("gross_floor_area", DM::Attribute::DOUBLE, DM::WRITE);
 
-	houses.addAttribute("centroid_x");
-	houses.addAttribute("centroid_y");
+	houses.addAttribute("centroid_x", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("centroid_y", DM::Attribute::DOUBLE, DM::WRITE);
 
-	houses.addAttribute("l_bounding");
-	houses.addAttribute("b_bounding");
-	houses.addAttribute("h_bounding");
-	houses.addAttribute("alhpa_bounding");
+	houses.addAttribute("l_bounding", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("b_bounding", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("h_bounding", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("alhpa_bounding", DM::Attribute::DOUBLE, DM::WRITE);
 
-	houses.addAttribute("alpha_roof");
+	houses.addAttribute("alpha_roof", DM::Attribute::DOUBLE, DM::WRITE);
 
-	houses.addAttribute("cellar_used");
-	houses.addAttribute("roof_used");
+	houses.addAttribute("cellar_used", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("roof_used", DM::Attribute::DOUBLE, DM::WRITE);
 
-	houses.addAttribute("T_heating");
-	houses.addAttribute("T_cooling");
+	houses.addAttribute("T_heating", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("T_cooling", DM::Attribute::DOUBLE, DM::WRITE);
 
-	houses.addAttribute("Geometry");
-	houses.addAttribute("V_living");
+	houses.addAttribute("Geometry", "Geometry", DM::WRITE);
+	houses.addAttribute("V_living", DM::Attribute::DOUBLE, DM::WRITE);
 
 	footprints = DM::View("Footprint", DM::FACE, DM::READ);
-	footprints.getAttribute("stories");
-	footprints.getAttribute("PARCEL");
-	footprints.addLinks("BUILDING", houses);
+	footprints.addAttribute("stories", DM::Attribute::DOUBLE, DM::READ);
+	footprints.addAttribute("PARCEL", "PARCEL", DM::READ);
+	footprints.addAttribute("BUILDING", houses.getName(), DM::WRITE);
 
 	building_model = DM::View("Geometry", DM::FACE, DM::WRITE);
-	building_model.addAttribute("type");
+	building_model.addAttribute("type", DM::Attribute::STRING, DM::WRITE);
 
-	parcels.addLinks("BUILDING", houses);
-	houses.addLinks("PARCEL", parcels);
+	parcels.addAttribute("BUILDING", houses.getName(), DM::WRITE);
+	houses.addAttribute("PARCEL", parcels.getName(), DM::WRITE);
 
 	std::vector<DM::View> data;
 	data.push_back(houses);
@@ -95,17 +95,13 @@ void ExtrudeBuildings::run()
 	DM::System * city = this->getData("City");
 	DM::SpatialNodeHashMap spatialNodeMap(city, 100);
 
-	std::vector<std::string> city_uuid = city->getUUIDs(cityView);
+	//std::vector<std::string> city_uuid = city->getUUIDs(cityView);
 	int buildyear = 1980;
-
-
-	std::vector<std::string> footprintUUIDs = city->getUUIDs(this->footprints);
-
-	int nfootprints = footprintUUIDs.size();
 	int numberOfHouseBuild = 0;
 
-	for (int i = 0; i < nfootprints; i++) {
-		DM::Face * footprint = city->getFace(footprintUUIDs[i]);
+	foreach(DM::Component* cmp, city->getAllComponentsInView(this->footprints))
+	{
+		DM::Face * footprint = (DM::Face*)cmp;
 		int stories =  (int) footprint->getAttribute("stories")->getDouble();
 
 		std::vector<DM::Node * > nodes  = TBVectorData::getNodeListFromFace(city, footprint);
@@ -119,9 +115,6 @@ void ExtrudeBuildings::run()
 			Logger(Debug) << "reverse";
 
 		}
-
-
-
 
 		std::vector<DM::Node> bB;
 		//Calcualte bounding minial bounding box
@@ -172,16 +165,16 @@ void ExtrudeBuildings::run()
 
 		LittleGeometryHelpers::CreateStandardBuilding(city, houses, building_model, building, nodes, stories,withWindows);
 
-		std::vector<LinkAttribute> plinks = footprint->getAttribute("PARCEL")->getLinks();
-		foreach (LinkAttribute link, plinks) {
-			building->getAttribute("PARCEL")->setLink("PARCEL", link.uuid);
-			DM::Component * parcel = city->getComponent( link.uuid);
-			parcel->getAttribute("BUILDING")->setLink("BUILDING", building->getUUID());
+		//std::vector<LinkAttribute> plinks = footprint->getAttribute("PARCEL")->getLinks();
+		//foreach (LinkAttribute link, plinks) {
+		foreach(Component* parcel, footprint->getAttribute("PARCEL")->getLinkedComponents())
+		{
+			building->getAttribute("PARCEL")->addLink(parcel, "PARCEL");
+			parcel->getAttribute("BUILDING")->addLink(building, "BUILDING");
 		}
-		building->getAttribute("Footprint")->setLink(this->footprints.getName(), footprint->getUUID());
 
-		footprint->getAttribute("BUILDING")->setLink(this->houses.getName(), building->getUUID());
-
+		building->getAttribute("Footprint")->addLink(footprint, this->footprints.getName());
+		footprint->getAttribute("BUILDING")->addLink(building, this->houses.getName());
 
 		//Create Links
 		//building->getAttribute("PARCEL")->setLink(parcels.getName(), parcel->getUUID());

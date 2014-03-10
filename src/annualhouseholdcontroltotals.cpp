@@ -18,11 +18,11 @@ AnnualHouseholdControlTotals::AnnualHouseholdControlTotals()
 	this->addParameter("GrowthRate", DM::DOUBLE, &this->growthRate);
 
 	city = DM::View("CITY", DM::FACE, DM::MODIFY);
-	city.getAttribute("HH01");
-	city.getAttribute("HH02");
-	city.getAttribute("HH03");
-	city.getAttribute("HH04");
-	city.getAttribute("HH05");
+	city.addAttribute("HH01", DM::Attribute::DOUBLE, DM::READ);
+	city.addAttribute("HH02", DM::Attribute::DOUBLE, DM::READ);
+	city.addAttribute("HH03", DM::Attribute::DOUBLE, DM::READ);
+	city.addAttribute("HH04", DM::Attribute::DOUBLE, DM::READ);
+	city.addAttribute("HH05", DM::Attribute::DOUBLE, DM::READ);
 	std::vector<DM::View> data;
 	data.push_back(city);
 	this->addData("City", data);
@@ -32,8 +32,7 @@ AnnualHouseholdControlTotals::AnnualHouseholdControlTotals()
 void AnnualHouseholdControlTotals::run()
 {
 	DM::System * sys = this->getData("City");
-	std::vector<std::string> uuids = sys->getUUIDsOfComponentsInView(city);
-	DM::Component * city = sys->getComponent(uuids[0]);
+	DM::Component * city = sys->getAllComponentsInView(this->city)[0];
 
 	int households[5];
 

@@ -37,56 +37,56 @@ CreateSingleFamilyHouses::CreateSingleFamilyHouses()
 	this->addParameter("onSignal", DM::BOOL, &onSingal);
 
 	cityView = DM::View("CITY", DM::FACE, DM::READ);
-	cityView.getAttribute("year");
+	cityView.addAttribute("year", DM::Attribute::DOUBLE, DM::READ);
 	parcels = DM::View("PARCEL", DM::FACE, DM::READ);
-	parcels.addAttribute("is_built");
+	parcels.addAttribute("is_built", DM::Attribute::DOUBLE, DM::WRITE);
 
-	parcels.getAttribute("released");
-	parcels.getAttribute("centroid_x");
-	parcels.getAttribute("centroid_y");
+	parcels.addAttribute("released", DM::Attribute::DOUBLE, DM::READ);
+	parcels.addAttribute("centroid_x", DM::Attribute::DOUBLE, DM::READ);
+	parcels.addAttribute("centroid_y", DM::Attribute::DOUBLE, DM::READ);
 
 	houses = DM::View("BUILDING", DM::COMPONENT, DM::WRITE);
 
-	houses.addAttribute("centroid_x");
-	houses.addAttribute("centroid_y");
+	houses.addAttribute("centroid_x", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("centroid_y", DM::Attribute::DOUBLE, DM::WRITE);
 
-	houses.addAttribute("built_year");
-	houses.addAttribute("stories");
-	houses.addAttribute("stories_below");
-	houses.addAttribute("stories_height");
+	houses.addAttribute("built_year", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("stories", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("stories_below", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("stories_height", DM::Attribute::DOUBLE, DM::WRITE);
 
-	houses.addAttribute("floor_area");
-	houses.addAttribute("roof_area");
-	houses.addAttribute("gross_floor_area");
+	houses.addAttribute("floor_area", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("roof_area", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("gross_floor_area", DM::Attribute::DOUBLE, DM::WRITE);
 
-	houses.addAttribute("centroid_x");
-	houses.addAttribute("centroid_y");
+	houses.addAttribute("centroid_x", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("centroid_y", DM::Attribute::DOUBLE, DM::WRITE);
 
-	houses.addAttribute("l_bounding");
-	houses.addAttribute("b_bounding");
-	houses.addAttribute("h_bounding");
-	houses.addAttribute("alhpa_bounding");
+	houses.addAttribute("l_bounding", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("b_bounding", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("h_bounding", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("alhpa_bounding", DM::Attribute::DOUBLE, DM::WRITE);
 
-	houses.addAttribute("alpha_roof");
+	houses.addAttribute("alpha_roof", DM::Attribute::DOUBLE, DM::WRITE);
 
-	houses.addAttribute("cellar_used");
-	houses.addAttribute("roof_used");
+	houses.addAttribute("cellar_used", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("roof_used", DM::Attribute::DOUBLE, DM::WRITE);
 
-	houses.addAttribute("T_heating");
-	houses.addAttribute("T_cooling");
+	houses.addAttribute("T_heating", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("T_cooling", DM::Attribute::DOUBLE, DM::WRITE);
 
-	houses.addAttribute("Geometry");
-	houses.addAttribute("V_living");
+	houses.addAttribute("Geometry", "Geometry", DM::WRITE);
+	houses.addAttribute("V_living", DM::Attribute::DOUBLE, DM::WRITE);
 
 	footprint = DM::View("Footprint", DM::FACE, DM::WRITE);
-	footprint.addAttribute("year");
-	footprint.addAttribute("h");
-	footprint.addAttribute("built_year");
+	footprint.addAttribute("year", DM::Attribute::DOUBLE, DM::WRITE);
+	footprint.addAttribute("h", DM::Attribute::DOUBLE, DM::WRITE);
+	footprint.addAttribute("built_year", DM::Attribute::DOUBLE, DM::WRITE);
 	building_model = DM::View("Geometry", DM::FACE, DM::WRITE);
-	building_model.addAttribute("type");
+	building_model.addAttribute("type", DM::Attribute::STRING, DM::WRITE);
 
-	parcels.addLinks("BUILDING", houses);
-	houses.addLinks("PARCEL", parcels);
+	parcels.addAttribute("BUILDING", houses.getName(), DM::WRITE);
+	houses.addAttribute("PARCEL", parcels.getName(), DM::WRITE);
 
 	std::vector<DM::View> data;
 	data.push_back(houses);
@@ -104,18 +104,19 @@ void CreateSingleFamilyHouses::run()
 	DM::System * city = this->getData("City");
 	DM::SpatialNodeHashMap spatialNodeMap(city, 100);
 
-	std::vector<std::string> city_uuid = city->getUUIDs(cityView);
-	if (city_uuid.size() != 0) {
-		buildyear = city->getComponent(city_uuid[0])->getAttribute("year")->getDouble();
+	std::vector<DM::Component*> city_cmp = city->getAllComponentsInView(cityView);
+	if (city_cmp.size() != 0) {
+		buildyear = city_cmp[0]->getAttribute("year")->getDouble();
 	}
 
-	std::vector<std::string> parcelUUIDs = city->getUUIDs(parcels);
+	std::vector<DM::Component*> parcelCmps = city->getAllComponentsInView(parcels);
 
-	int nparcels = parcelUUIDs.size();
+	int nparcels = parcelCmps.size();
 	int numberOfHouseBuild = 0;
 
-	for (int i = 0; i < nparcels; i++) {
-		DM::Face * parcel = city->getFace(parcelUUIDs[i]);
+	foreach(DM::Component* c, parcelCmps)
+	{
+		DM::Face* parcel = (DM::Face*)c;
 
 		if (parcel->getAttribute("released")->getDouble() < 0.01 && onSingal == true)
 			continue;
@@ -195,8 +196,8 @@ void CreateSingleFamilyHouses::run()
 		}
 
 		//Create Links
-		building->getAttribute("PARCEL")->setLink(parcels.getName(), parcel->getUUID());
-		parcel->getAttribute("BUILDING")->setLink(houses.getName(), building->getUUID());
+		building->getAttribute("PARCEL")->addLink(parcel, parcels.getName());
+		parcel->getAttribute("BUILDING")->addLink(building, houses.getName());
 		parcel->addAttribute("is_built",1);
 		numberOfHouseBuild++;
 

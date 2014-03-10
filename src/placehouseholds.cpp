@@ -68,37 +68,32 @@ int PlaceHouseholds::chooseBuilding(std::vector<int> &buildings)
 PlaceHouseholds::PlaceHouseholds()
 {
 	grids = DM::View("GRID", DM::FACE, DM::READ);
-	grids.getAttribute("hh01");
-	grids.getAttribute("hh02");
-	grids.getAttribute("hh03");
-	grids.getAttribute("hh04");
-	grids.getAttribute("hh05");
-	grids.getAttribute("BUILDING");
+	grids.addAttribute("hh01", DM::Attribute::DOUBLE, DM::READ);
+	grids.addAttribute("hh02", DM::Attribute::DOUBLE, DM::READ);
+	grids.addAttribute("hh03", DM::Attribute::DOUBLE, DM::READ);
+	grids.addAttribute("hh04", DM::Attribute::DOUBLE, DM::READ);
+	grids.addAttribute("hh05", DM::Attribute::DOUBLE, DM::READ);
+	grids.addAttribute("BUILDING", "BUILDING", DM::READ);
 
 	buildings = DM::View("BUILDING",  DM::FACE, DM::READ);
-	buildings.getAttribute("residential_units");
-
-
+	buildings.addAttribute("residential_units", DM::Attribute::DOUBLE, DM::READ);
 
 	households = DM::View("HOUSEHOLD",  DM::COMPONENT ,DM::WRITE);
-	households.addAttribute("id");
-	households.addAttribute("income");
-	households.addAttribute("age_of_head");
-	households.addAttribute("race_id");
-	households.addAttribute("children");
-	households.addAttribute("cars");
+	households.addAttribute("id", DM::Attribute::DOUBLE, DM::WRITE);
+	households.addAttribute("income", DM::Attribute::DOUBLE, DM::WRITE);
+	households.addAttribute("age_of_head", DM::Attribute::DOUBLE, DM::WRITE);
+	households.addAttribute("race_id", DM::Attribute::DOUBLE, DM::WRITE);
+	households.addAttribute("children", DM::Attribute::DOUBLE, DM::WRITE);
+	households.addAttribute("cars", DM::Attribute::DOUBLE, DM::WRITE);
 
-
-
-
-	households.addLinks("BUILDING", buildings);
-	buildings.addLinks("HOUSEHOLD", households);
+	households.addAttribute("BUILDING", buildings.getName(), DM::WRITE);
+	buildings.addAttribute("HOUSEHOLD", households.getName(), DM::WRITE);
 
 
 	persons = DM::View("PERSON", DM::COMPONENT ,DM::WRITE);
-	persons.addAttribute("id");
-	persons.addLinks("HOUSEHOLD", households);
-	households.addLinks("PERSON", persons);
+	persons.addAttribute("id", DM::Attribute::DOUBLE, DM::WRITE);
+	persons.addAttribute("HOUSEHOLD", households.getName(), DM::WRITE);
+	households.addAttribute("PERSON", persons.getName(), DM::WRITE);
 
 	std::vector<DM::View> dataset;
 	dataset.push_back(grids);
@@ -113,14 +108,15 @@ void PlaceHouseholds::run()
 {
 	DM::System * city = this->getData("City");
 
-	std::vector<std::string> gridUuids = city->getUUIDsOfComponentsInView(grids);
+	//std::vector<std::string> gridUuids = city->getUUIDsOfComponentsInView(grids);
 
 
 	int household_id = 0;
 	int person_id = 0;
-	foreach (std::string gUuid, gridUuids) {
-		DM::Component * grid = city->getComponent(gUuid);
-
+	//foreach (std::string gUuid, gridUuids) {
+	//	DM::Component * grid = city->getComponent(gUuid);
+	foreach(DM::Component* grid, city->getAllComponentsInView(grids))
+	{
 		int hh[5];
 		hh[0] = (int) grid->getAttribute("hh01")->getDouble();
 		hh[1] = (int) grid->getAttribute("hh02")->getDouble();
@@ -130,20 +126,21 @@ void PlaceHouseholds::run()
 
 		//Get Buildings
 		Attribute  * attrBuildings = grid->getAttribute("BUILDING");
-		std::vector<LinkAttribute> lBuildings = attrBuildings->getLinks();
 		std::vector<int> avalibleUnits;
-		std::vector<std::string> buildingUUIDs;
-		foreach (LinkAttribute lB, lBuildings) {
-			DM::Component * b = city->getComponent(lB.uuid);
+		std::vector<Component*> buildingCmps;
+		foreach(DM::Component* b, attrBuildings->getLinkedComponents())
+		{
 			int runits = (int) b->getAttribute("residential_units")->getDouble();
-			if (runits>0) {
+			if (runits>0) 
+			{
 				avalibleUnits.push_back(runits);
-				buildingUUIDs.push_back(lB.uuid);
+				buildingCmps.push_back(b);
 			}
 		}
 
 
-		while (this->sumHouseholds(hh) > 0) {
+		while (this->sumHouseholds(hh) > 0) 
+		{
 			household_id++;
 			int chooser = this->chooseHousehold(hh);
 			int chooser_building = this->chooseBuilding(avalibleUnits);
@@ -164,30 +161,31 @@ void PlaceHouseholds::run()
 
 			//Link Household - Building
 			Attribute linkB("BUILDING");
-			linkB.setLink(buildings.getName(), buildingUUIDs[chooser_building]);
+			linkB.addLink(buildingCmps[chooser_building], buildings.getName());
 			h->addAttribute(linkB);
 
 			//Link Building Household
-			Component * building = city->getComponent( buildingUUIDs[chooser_building]);
+			Component * building = buildingCmps[chooser_building];
 			Attribute * bh = building->getAttribute("HOUSEHOLD");
-			bh->setLink(households.getName(), h->getUUID());
+			bh->addLink(h, households.getName());
 
 			city->addComponent(h, households);
 
 			//Create Persons
-			for(int i = 0; i < chooser+1; i++) {
+			for(int i = 0; i < chooser+1; i++) 
+			{
 				person_id++;
 				Component * p = new Component();
 				p->addAttribute("id", person_id);
 
 				//Link Person - Houshold
 				Attribute l("HOUSEHOLD");
-				l.setLink(households.getName(), h->getUUID());
+				l.addLink(h, households.getName());
 				p->addAttribute(l);
 
 				//Link Household - Person
 				Attribute * hp = h->getAttribute("PERSON");
-				hp->setLink(persons.getName(), p->getUUID());
+				hp->addLink(p, persons.getName());
 
 				city->addComponent(p, persons);
 			}

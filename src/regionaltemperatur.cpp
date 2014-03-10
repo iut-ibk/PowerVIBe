@@ -8,29 +8,25 @@ DM_DECLARE_NODE_NAME(RegionalTemperatur, PowerVIBe)
 RegionalTemperatur::RegionalTemperatur()
 {
 	this->ThermalRegion = DM::View("ThermalRegion", DM::FACE, DM::READ);
-	this->ThermalRegion.getAttribute("geothermal_energy");
-	this->ThermalRegion.addAttribute("delta_T");
-	this->ThermalRegion.getAttribute("kf");
-	this->ThermalRegion.getAttribute("n");
-	this->ThermalRegion.getAttribute("I_ground_water");
-	this->ThermalRegion.getAttribute("width");
+	this->ThermalRegion.addAttribute("geothermal_energy", DM::Attribute::DOUBLE, DM::READ);
+	this->ThermalRegion.addAttribute("delta_T", DM::Attribute::DOUBLE, DM::WRITE);
+	this->ThermalRegion.addAttribute("kf", DM::Attribute::DOUBLE, DM::READ);
+	this->ThermalRegion.addAttribute("n", DM::Attribute::DOUBLE, DM::READ);
+	this->ThermalRegion.addAttribute("I_ground_water", DM::Attribute::DOUBLE, DM::READ);
+	this->ThermalRegion.addAttribute("width", DM::Attribute::DOUBLE, DM::READ);
 
 	std::vector<DM::View> datastream;
 	datastream.push_back(this->ThermalRegion);
 
-
 	this->addData("city", datastream);
-
-
 }
 
 void RegionalTemperatur::run() {
 	DM::System * city = this->getData("city");
 
-	std::vector<std::string> uuids = city->getUUIDs(this->ThermalRegion);
-
-	foreach (std::string uuid, uuids) {
-		DM::Face * f = city->getFace(uuid);
+	foreach(DM::Component* c, city->getAllComponentsInView(this->ThermalRegion))
+	{
+		DM::Face* f = (DM::Face*)c;
 		double w0 = f->getAttribute("geothermal_energy")->getDouble() / (365.*24.);
 		double area = TBVectorData::CalculateArea(TBVectorData::getNodeListFromFace(city, f));
 		double lambda = 1.0;

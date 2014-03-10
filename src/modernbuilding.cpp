@@ -36,39 +36,39 @@ DM_DECLARE_NODE_NAME(ModernBuilding, Buildings)
 ModernBuilding::ModernBuilding()
 {
 	buildings = DM::View("BUILDING", DM::COMPONENT, DM::WRITE);
-	buildings.addAttribute("built_year");
-	buildings.addAttribute("stories");
-	buildings.addAttribute("stories_below"); //cellar counts as story
-	buildings.addAttribute("stories_height");
+	buildings.addAttribute("built_year", DM::Attribute::DOUBLE, DM::WRITE);
+	buildings.addAttribute("stories", DM::Attribute::DOUBLE, DM::WRITE);
+	buildings.addAttribute("stories_below", DM::Attribute::DOUBLE, DM::WRITE); //cellar counts as story
+	buildings.addAttribute("stories_height", DM::Attribute::DOUBLE, DM::WRITE);
 
-	buildings.addAttribute("floor_area");
-	buildings.addAttribute("gross_floor_area");
+	buildings.addAttribute("floor_area", DM::Attribute::DOUBLE, DM::WRITE);
+	buildings.addAttribute("gross_floor_area", DM::Attribute::DOUBLE, DM::WRITE);
 
-	buildings.addAttribute("area_walls_outside");
-	buildings.addAttribute("area_windows");
+	buildings.addAttribute("area_walls_outside", DM::Attribute::DOUBLE, DM::WRITE);
+	buildings.addAttribute("area_windows", DM::Attribute::DOUBLE, DM::WRITE);
 
-	buildings.addAttribute("centroid_x");
-	buildings.addAttribute("centroid_y");
+	buildings.addAttribute("centroid_x", DM::Attribute::DOUBLE, DM::WRITE);
+	buildings.addAttribute("centroid_y", DM::Attribute::DOUBLE, DM::WRITE);
 
-	buildings.addAttribute("l_bounding");
-	buildings.addAttribute("b_bounding");
-	buildings.addAttribute("h_bounding");
+	buildings.addAttribute("l_bounding", DM::Attribute::DOUBLE, DM::WRITE);
+	buildings.addAttribute("b_bounding", DM::Attribute::DOUBLE, DM::WRITE);
+	buildings.addAttribute("h_bounding", DM::Attribute::DOUBLE, DM::WRITE);
 
-	buildings.addAttribute("alpha_bounding");
+	buildings.addAttribute("alpha_bounding", DM::Attribute::DOUBLE, DM::WRITE);
 
-	buildings.addAttribute("alpha_roof");
+	buildings.addAttribute("alpha_roof", DM::Attribute::DOUBLE, DM::WRITE);
 
-	buildings.addAttribute("cellar_used");
-	buildings.addAttribute("roof_used");
+	buildings.addAttribute("cellar_used", DM::Attribute::DOUBLE, DM::WRITE);
+	buildings.addAttribute("roof_used", DM::Attribute::DOUBLE, DM::WRITE);
 
-	buildings.addAttribute("T_heating");
-	buildings.addAttribute("T_cooling");
+	buildings.addAttribute("T_heating", DM::Attribute::DOUBLE, DM::WRITE);
+	buildings.addAttribute("T_cooling", DM::Attribute::DOUBLE, DM::WRITE);
 
-	buildings.addAttribute("Geometry");
-	buildings.addAttribute("V_living");
+	buildings.addAttribute("Geometry", "Geometry", DM::WRITE);
+	buildings.addAttribute("V_living", DM::Attribute::DOUBLE, DM::WRITE);
 
 	geometry = DM::View("Geometry", DM::FACE, DM::WRITE);
-	geometry.addAttribute("type");
+	geometry.addAttribute("type", DM::Attribute::STRING, DM::WRITE);
 
 	footprints = DM::View("Footprint", DM::FACE, DM::WRITE);
 
@@ -196,7 +196,7 @@ void ModernBuilding::run()
 
 	//Set footprint as floor
 	DM::Face * base_plate = city->addFace(nodes_footprint, geometry);
-	building->getAttribute("Geometry")->setLink("Geometry", base_plate->getUUID());
+	building->getAttribute("Geometry")->addLink(base_plate, "Geometry");
 
 	//Define baseplate as cellar
 	base_plate->addAttribute("type", "ceiling_cellar");
@@ -221,7 +221,7 @@ void ModernBuilding::run()
 					city->addComponentToView(w, this->geometry);
 					w->addAttribute("type", "window");
 					w->getAttribute("color")->setDoubleVector(windowColor);
-					building->getAttribute("Geometry")->setLink("Geometry", w->getUUID());
+					building->getAttribute("Geometry")->addLink(w, "Geometry");
 				}
 			}
 			//if ceiling
@@ -235,7 +235,7 @@ void ModernBuilding::run()
 				f->getAttribute("color")->setDoubleVector(roofColor);
 			}
 			//link face to building
-			building->getAttribute("Geometry")->setLink("Geometry", f->getUUID());
+			building->getAttribute("Geometry")->addLink(f, "Geometry");
 
 		}
 		//create hangover
@@ -248,16 +248,16 @@ void ModernBuilding::run()
 		DM::Face * f = city->addFace(nodelist_ho, geometry);
 		f->addHole(TBVectorData::getNodeListFromFace(city, ceiling));
 		f->getAttribute("color")->setDoubleVector(wallColor);
-		building->getAttribute("Geometry")->setLink("Geometry", f->getUUID());
+		building->getAttribute("Geometry")->addLink(f, "Geometry");
 	}
 
 	//Calculate areas
-	std::vector<DM::LinkAttribute> links = building->getAttribute("Geometry")->getLinks();
-
 	double windows_a = 0;
 	double wall_outside_a = 0;
-	foreach (LinkAttribute la, links) {
-		DM::Face * f = city->getFace(la.uuid);
+
+	foreach(DM::Component* c, building->getAttribute("Geometry")->getLinkedComponents())
+	{
+		DM::Face* f = (DM::Face*)c;
 		double area = TBVectorData::CalculateArea(city, f);
 		if (f->getAttribute("type")->getString() == "window") {
 			windows_a+=area;

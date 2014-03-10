@@ -42,7 +42,7 @@ AnnualEmploymentControl::AnnualEmploymentControl()
 	this->addParameter("GrowthRate", DM::DOUBLE, &this->growthRate);
 
 	city = DM::View("CITY", DM::FACE, DM::MODIFY);
-	city.getAttribute("JOBS");
+	city.addAttribute("JOBS", DM::Attribute::DOUBLE, DM::READ);
 
 
 	std::vector<DM::View> data;
@@ -55,13 +55,10 @@ AnnualEmploymentControl::AnnualEmploymentControl()
 
 void AnnualEmploymentControl::run()
 {
-
-
 	DM::System * sys = this->getData("City");
 	int numberOfJobs;
 
-	std::vector<std::string> uuids = sys->getUUIDsOfComponentsInView(city);
-	DM::Component * city = sys->getComponent(uuids[0]);
+	DM::Component * city = sys->getAllComponentsInView(this->city)[0];
 	numberOfJobs = (int)city->getAttribute("JOBS")->getDouble();
 
 	QSqlDatabase db;

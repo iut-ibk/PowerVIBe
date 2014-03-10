@@ -4,41 +4,35 @@ DM_DECLARE_NODE_NAME(HouseholdPlacementDTU, UrbanSim)
 HouseholdPlacementDTU::HouseholdPlacementDTU()
 {
 	address = DM::View("ADDRESS", DM::NODE, DM::READ);
-	address.getAttribute("BYG_BEBOLE");
+	address.addAttribute("BYG_BEBOLE", DM::Attribute::DOUBLE, DM::READ);
 
 	buildings = DM::View("BUILDING", DM::FACE, DM::READ);
-	buildings.getAttribute("residential_units");
-	buildings.getAttribute("ADDRESS");
+	buildings.addAttribute("residential_units", DM::Attribute::DOUBLE, DM::READ);
+	buildings.addAttribute("ADDRESS", "ADDRESS", DM::READ);
 
 	households = DM::View("HOUSEHOLD",  DM::COMPONENT ,DM::WRITE);
-	households.addAttribute("id");
-	households.addAttribute("income");
-	households.addAttribute("age_of_head");
-	households.addAttribute("race_id");
-	households.addAttribute("children");
-	households.addAttribute("cars");
+	households.addAttribute("id", DM::Attribute::DOUBLE, DM::WRITE);
+	households.addAttribute("income", DM::Attribute::DOUBLE, DM::WRITE);
+	households.addAttribute("age_of_head", DM::Attribute::DOUBLE, DM::WRITE);
+	households.addAttribute("race_id", DM::Attribute::DOUBLE, DM::WRITE);
+	households.addAttribute("children", DM::Attribute::DOUBLE, DM::WRITE);
+	households.addAttribute("cars", DM::Attribute::DOUBLE, DM::WRITE);
 
-
-
-
-	households.addLinks("BUILDING", buildings);
-	buildings.addLinks("HOUSEHOLD", households);
+	households.addAttribute("BUILDING", buildings.getName(), DM::WRITE);
+	buildings.addAttribute("HOUSEHOLD", households.getName(), DM::WRITE);
 
 
 	persons = DM::View("PERSON", DM::COMPONENT ,DM::WRITE);
-	persons.addAttribute("id");
-	persons.addLinks("HOUSEHOLD", households);
-	households.addLinks("PERSON", persons);
+	persons.addAttribute("id", DM::Attribute::DOUBLE, DM::WRITE);
+	persons.addAttribute("HOUSEHOLD", households.getName(), DM::WRITE);
+	households.addAttribute("PERSON", persons.getName(), DM::WRITE);
 
 	vCity = DM::View("CITY", DM::FACE, DM::READ);
-	vCity.addAttribute("HH01");
-	vCity.addAttribute("HH02");
-	vCity.addAttribute("HH03");
-	vCity.addAttribute("HH04");
-	vCity.addAttribute("HH05");
-
-
-
+	vCity.addAttribute("HH01", DM::Attribute::DOUBLE, DM::WRITE);
+	vCity.addAttribute("HH02", DM::Attribute::DOUBLE, DM::WRITE);
+	vCity.addAttribute("HH03", DM::Attribute::DOUBLE, DM::WRITE);
+	vCity.addAttribute("HH04", DM::Attribute::DOUBLE, DM::WRITE);
+	vCity.addAttribute("HH05", DM::Attribute::DOUBLE, DM::WRITE);
 
 	std::vector<DM::View> data;
 	data.push_back(address);
@@ -53,22 +47,18 @@ void HouseholdPlacementDTU::run()
 {
 
 	DM::System * city = this->getData("City");
-	std::vector<std::string> building_ids = city->getUUIDs(buildings);
 	int household_id = 1;
 	int person_id = 1;
 
 	double households_tot[5];
 
-
-	foreach (std::string building_id, building_ids) {
-		DM::Component * building = city->getComponent(building_id);
-		std::vector<LinkAttribute> address_links = building->getAttribute("ADDRESS")->getLinks();
-
+	foreach(DM::Component* building, city->getAllComponentsInView(buildings))
+	{
 		int persons_tot = 0;
 		int residential_units = (int) building->getAttribute("residential_units")->getDouble();
 
-		foreach (LinkAttribute lattr, address_links) {
-			DM::Component * addr = city->getComponent(lattr.uuid);
+		foreach(DM::Component* addr, building->getAttribute("ADDRESS")->getLinkedComponents())
+		{
 			int p = (int)addr->getAttribute("BYG_BEBOLE")->getDouble();
 			persons_tot+=p;
 		}
@@ -106,12 +96,12 @@ void HouseholdPlacementDTU::run()
 
 			//Link Household - Building
 			Attribute linkB("BUILDING");
-			linkB.setLink(buildings.getName(), building->getUUID());
+			linkB.addLink(building, buildings.getName());
 			h->addAttribute(linkB);
 
 			//Link Building Household
 			Attribute * bh = building->getAttribute("HOUSEHOLD");
-			bh->setLink(households.getName(), h->getUUID());
+			bh->addLink(h, households.getName());
 
 			//Create Households and Persons
 			for(int j = 0; j < per; j++) {
@@ -120,12 +110,12 @@ void HouseholdPlacementDTU::run()
 
 				//Link Person - Houshold
 				Attribute l("HOUSEHOLD");
-				l.setLink(households.getName(), h->getUUID());
+				l.addLink(h, households.getName());
 				p->addAttribute(l);
 
 				//Link Household - Person
 				Attribute * hp = h->getAttribute("PERSON");
-				hp->setLink("PERSON", p->getUUID());
+				hp->addLink(p, "PERSON");
 				city->addComponent(p, persons);
 			}
 
@@ -136,7 +126,7 @@ void HouseholdPlacementDTU::run()
 	Logger(Debug) << "Created Households " << household_id;
 	Logger(Debug) << "Created Persons " << person_id;
 
-	DM::Component * c = city->getComponent(city->getUUIDs(vCity)[0]);
+	DM::Component * c = city->getAllComponentsInView(vCity)[0];
 
 	c->addAttribute("HH01", households_tot[0]);
 	c->addAttribute("HH02", households_tot[1]);

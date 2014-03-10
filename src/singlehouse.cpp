@@ -38,41 +38,41 @@ DM_DECLARE_NODE_NAME(SingleHouse, TestModules)
 SingleHouse::SingleHouse()
 {
 	houses = DM::View("BUILDING", DM::COMPONENT, DM::WRITE);
-	houses.addAttribute("built_year");
-	houses.addAttribute("stories");
-	houses.addAttribute("stories_below"); //cellar counts as story
-	houses.addAttribute("stories_height");
+	houses.addAttribute("built_year", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("stories", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("stories_below", DM::Attribute::DOUBLE, DM::WRITE); //cellar counts as story
+	houses.addAttribute("stories_height", DM::Attribute::DOUBLE, DM::WRITE);
 
-	houses.addAttribute("floor_area");
-	houses.addAttribute("gross_floor_area");
+	houses.addAttribute("floor_area", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("gross_floor_area", DM::Attribute::DOUBLE, DM::WRITE);
 
-	houses.addAttribute("area_walls_outside");
-	houses.addAttribute("area_windows");
+	houses.addAttribute("area_walls_outside", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("area_windows", DM::Attribute::DOUBLE, DM::WRITE);
 
-	houses.addAttribute("centroid_x");
-	houses.addAttribute("centroid_y");
+	houses.addAttribute("centroid_x", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("centroid_y", DM::Attribute::DOUBLE, DM::WRITE);
 
-	houses.addAttribute("l_bounding");
-	houses.addAttribute("b_bounding");
-	houses.addAttribute("h_bounding");
+	houses.addAttribute("l_bounding", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("b_bounding", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("h_bounding", DM::Attribute::DOUBLE, DM::WRITE);
 
-	houses.addAttribute("alpha_bounding");
+	houses.addAttribute("alpha_bounding", DM::Attribute::DOUBLE, DM::WRITE);
 
-	houses.addAttribute("alpha_roof");
+	houses.addAttribute("alpha_roof", DM::Attribute::DOUBLE, DM::WRITE);
 
-	houses.addAttribute("cellar_used");
-	houses.addAttribute("roof_used");
+	houses.addAttribute("cellar_used", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("roof_used", DM::Attribute::DOUBLE, DM::WRITE);
 
-	houses.addAttribute("T_heating");
-	houses.addAttribute("T_cooling");
+	houses.addAttribute("T_heating", DM::Attribute::DOUBLE, DM::WRITE);
+	houses.addAttribute("T_cooling", DM::Attribute::DOUBLE, DM::WRITE);
 
-	houses.addAttribute("Geometry");
-	houses.addAttribute("V_living");
+	houses.addAttribute("Geometry", "Geometry", DM::WRITE);
+	houses.addAttribute("V_living", DM::Attribute::DOUBLE, DM::WRITE);
 
 	footprint = DM::View("Footprint", DM::FACE, DM::WRITE);
 
 	building_model = DM::View("Geometry", DM::FACE, DM::WRITE);
-	building_model.addAttribute("type");
+	building_model.addAttribute("type", DM::Attribute::STRING, DM::WRITE);
 
 	std::vector<DM::View> data;
 	data.push_back(houses);
@@ -173,12 +173,10 @@ void SingleHouse::run()
 		LittleGeometryHelpers::CreateRoofRectangle(city, houses, building_model, building, houseNodes, stories*3, alpha);
 	}
 
-	std::vector<DM::LinkAttribute> links = building->getAttribute("Geometry")->getLinks();
-
 	double windows_a = 0;
 	double wall_outside_a = 0;
-	foreach (LinkAttribute la, links) {
-		DM::Face * f = city->getFace(la.uuid);
+	foreach(DM::Component* c, building->getAttribute("Geometry")->getLinkedComponents()) {
+		DM::Face * f = (DM::Face*)c;
 		double area = TBVectorData::CalculateArea(city, f);
 		if (f->getAttribute("type")->getString() == "window") {
 			windows_a+=area;

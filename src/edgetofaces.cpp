@@ -69,12 +69,10 @@ void EdgeToFaces::run()
 	DM::System * sys = this->getData("Data");
 	DM::System s = CGALGeometry::ShapeFinder(sys,edgeLayer, newFace, this->snapping, this->tolerance);
 
-	std::vector<std::string> uuids = s.getUUIDs(newFace);
-
-
-	foreach(std::string uuid, uuids) {
+	foreach(DM::Component* c, s.getAllComponentsInView(newFace))
+	{
 		SpatialNodeHashMap spnh(sys, 1,false);
-		DM::Face * f = s.getFace(uuid);
+		DM::Face * f = (DM::Face*)c;
 		std::vector<DM::Node*> nl_old = TBVectorData::getNodeListFromFace(&s, f);
 		std::vector<DM::Node*> nl;
 		for  (unsigned int i = 0; i < nl_old.size(); i++) {

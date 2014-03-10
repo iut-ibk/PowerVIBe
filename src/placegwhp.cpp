@@ -42,31 +42,31 @@ PlaceGWHP::PlaceGWHP():
 	pi(3.14159265358979323846)
 {
 	buildings = DM::View("BUILDING", DM::COMPONENT, DM::READ);
-	buildings.getAttribute("PARCEL");
-	buildings.getAttribute("monthly_peak_heating_demand");
-	buildings.getAttribute("anual_heating_demand");
-	buildings.addAttribute("geothermal_energy");
-	buildings.getAttribute("place_gwhp");
+	buildings.addAttribute("PARCEL", "PARCEL", DM::READ);
+	buildings.addAttribute("monthly_peak_heating_demand", DM::Attribute::DOUBLE, DM::READ);
+	buildings.addAttribute("anual_heating_demand", DM::Attribute::DOUBLE, DM::READ);
+	buildings.addAttribute("geothermal_energy", DM::Attribute::DOUBLE, DM::WRITE);
+	buildings.addAttribute("place_gwhp", DM::Attribute::DOUBLE, DM::READ);
 
 
 	parcels = DM::View("PARCEL", DM::FACE, DM::READ);
-	parcels.getAttribute("I_ground_water");
-	parcels.getAttribute("kf");
-	parcels.getAttribute("kfhTokfh");
-	parcels.getAttribute("BUILDING");
+	parcels.addAttribute("I_ground_water", DM::Attribute::DOUBLE, DM::READ);
+	parcels.addAttribute("kf", DM::Attribute::DOUBLE, DM::READ);
+	parcels.addAttribute("kfhTokfh", DM::Attribute::DOUBLE, DM::READ);
+	parcels.addAttribute("BUILDING", "BUILDING", DM::READ);
 
 	ghwps = DM::View("GWHP", DM::COMPONENT, DM::WRITE);
-	ghwps.addAttribute("Q");
+	ghwps.addAttribute("Q", DM::Attribute::DOUBLE, DM::WRITE);
 
-	ghwps.addLinks("BUILDING", buildings);
-	buildings.addLinks("GWHP", ghwps);
+	ghwps.addAttribute("BUILDING", buildings.getName(), DM::WRITE);
+	buildings.addAttribute("GWHP", ghwps.getName(), DM::WRITE);
 
 	thermal_effected_area = DM::View("thermal_effected_area", DM::FACE, DM::WRITE);
-	thermal_effected_area.addAttribute("T");
+	thermal_effected_area.addAttribute("T", DM::Attribute::DOUBLE, DM::WRITE);
 
 	city_view = DM::View("CITY", DM::COMPONENT, DM::READ);
-	city_view.addAttribute("total_anual_heating_demand");
-	city_view.addAttribute("total_anual_heating_demand_gwhp");
+	city_view.addAttribute("total_anual_heating_demand", DM::Attribute::DOUBLE, DM::WRITE);
+	city_view.addAttribute("total_anual_heating_demand_gwhp", DM::Attribute::DOUBLE, DM::WRITE);
 	//thermal_effected_area.addAttribute("b_id");
 	//thermal_effected_area.addAttribute("counter");
 
@@ -98,48 +98,39 @@ void PlaceGWHP::createReport(DM::System * city) {
 	double heating_tot = 0;
 	double gwhp_tot = 0;
 	int gwhp = 0;
-	std::vector<std::string> building_uuids = city->getUUIDs(buildings);
-	foreach (std::string building_uuid, building_uuids) {
-		DM::Component * building = city->getComponent(building_uuid);
+	std::vector<DM::Component*> buildingCmps = city->getAllComponentsInView(buildings);
+	foreach(DM::Component* building, buildingCmps)
+	{
 		heating_tot+=building->getAttribute("anual_heating_demand")->getDouble();
-		std::vector<LinkAttribute> links_ghwp = building->getAttribute("GHWP")->getLinks();
-		foreach (LinkAttribute l,links_ghwp ) {
+		foreach(DM::Component* l, building->getAttribute("GHWP")->getLinkedComponents())
+		{
 			gwhp++;
 			gwhp_tot += building->getAttribute("anual_heating_demand")->getDouble();
 		}
 	}
 
-
-	std::vector<std::string> uuids = city->getUUIDs(DM::View("CITY", DM::COMPONENT, DM::READ));
+	std::vector<DM::Component*> cmps = city->getAllComponentsInView(city_view);
 	double year = 0;
 	DM::Component * c;
-	if (uuids.size() != 0) {
-		year = city->getComponent(uuids[0])->getAttribute("year")->getDouble();
-		c = city->getComponent(uuids[0]);
+	if (cmps.size() != 0) {
+		year = cmps[0]->getAttribute("year")->getDouble();
+		c = cmps[0];
 	}
 	c->addAttribute("total_anual_heating_demand", heating_tot);
 	c->addAttribute("total_anual_heating_demand_gwhp", gwhp_tot);
-
 
 	if (this->reportFile.empty())
 		return;
 	ofstream rf;
 	rf.open (this->reportFile.c_str(),ios::app );
 
-
-
-
-
-
 	rf << year << "\t";
-	rf << building_uuids.size() << "\t";
+	rf << buildingCmps.size() << "\t";
 	rf <<heating_tot << "\t";
 	rf <<gwhp << "\t";
 	rf <<gwhp_tot << "\t";
 	rf <<gwhp_tot/heating_tot << "\t";
 	rf << "\n";
-
-
 
 	rf.close();
 }
@@ -155,26 +146,28 @@ void PlaceGWHP::run()
 	DM::System * city = this->getData("City");
 
 	//Caluclate Water Demand For every building
-	std::vector<std::string> building_uuids = city->getUUIDs(buildings);
+	std::vector<DM::Component*> buildingCmps = city->getAllComponentsInView(buildings);
 
-	int TotalNumberOfBuildings = building_uuids.size();
+	int TotalNumberOfBuildings = buildingCmps.size();
 	int counterDone = 0;
-	foreach (std::string building_uuid, building_uuids) {
+	foreach(Component* building, buildingCmps) 
+	{
 		counterDone++;
 		Logger(Debug) << "Start" << counterDone << "Total" << TotalNumberOfBuildings;
-		DM::Component * building = city->getComponent(building_uuid);
 		if (building->getAttribute("place_gwhp")->getDouble() < 0.01)
 			continue;
 		DM::Node bcenter (building->getAttribute("centroid_x")->getDouble(), building->getAttribute("centroid_y")->getDouble(), 0);
 
 		//GetParcel
-		LinkAttribute lp = building->getAttribute("PARCEL")->getLink();
-		if (lp.uuid.empty()) {
+		//LinkAttribute lp = building->getAttribute("PARCEL")->getLink();
+		std::vector<DM::Component*> linked = building->getAttribute("PARCEL")->getLinkedComponents();
+		if (linked.size() == 0 || linked[0] == NULL) 
+		{
 			Logger(Warning) << "Building not linked can't create GWHP";
 			continue;
 		}
 
-		Face * parcel = city->getFace(lp.uuid);
+		Face * parcel = (Face*)linked[0];
 
 		double heatingDemand = building->getAttribute("monthly_peak_heating_demand")->getDouble();
 		double heatingDuration = building->getAttribute("anual_heating_demand")->getDouble() / heatingDemand;
@@ -248,13 +241,13 @@ void PlaceGWHP::run()
 			if (!this->checkThermalEffectedAreas(city, thermalNodes, possibleNodes, ressNode, parcel, 5, ghwp.getAttribute("L")->getDouble(), ghwp.getAttribute("B")->getDouble(), d))
 				continue;
 		} else {
-			if (!this->checkThermalEffectedAreas(city, thermalNodes, possibleNodes, ressNode, city->getFace(building->getAttribute("Footprint")->getLink().uuid), 5, ghwp.getAttribute("L")->getDouble(), ghwp.getAttribute("B")->getDouble(), d))
+			if (!this->checkThermalEffectedAreas(city, thermalNodes, possibleNodes, ressNode, (Face*)building->getAttribute("Footprint")->getLinkedComponents()[0], 5, ghwp.getAttribute("L")->getDouble(), ghwp.getAttribute("B")->getDouble(), d))
 				continue;
 		}
 		DM::Component * g = city->addComponent(new Component(ghwp), ghwps);
 
-		g->getAttribute("BUILDING")->setLink("BUILDING", building->getUUID());
-		building->getAttribute("GHWP")->setLink("GHWP", g->getUUID());
+		g->getAttribute("BUILDING")->addLink(building, "BUILDING");
+		building->getAttribute("GHWP")->addLink(g, "GHWP");
 
 
 		//Check Thermal Effected Areas
