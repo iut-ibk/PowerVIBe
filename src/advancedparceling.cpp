@@ -147,12 +147,12 @@ AdvancedParceling::AdvancedParceling()
 
 	//Datastream
 	this->inputView = DM::View("CITYBLOCK", DM::FACE, DM::READ);
-	this->inputView.getAttribute("selected");
+	this->inputView.addAttribute("selected", DM::Attribute::DOUBLE, DM::READ);
 
 	this->resultView = DM::View("PARCEL", DM::FACE, DM::WRITE);
-	this->resultView.addAttribute("selected");
+	this->resultView.addAttribute("selected", DM::Attribute::DOUBLE, DM::WRITE);
 
-	this->resultView.addAttribute("generation");
+	this->resultView.addAttribute("generation", DM::Attribute::DOUBLE, DM::WRITE);
 
 	this->bbs = DM::View("BBS", DM::FACE, DM::WRITE);
 
@@ -173,12 +173,12 @@ void AdvancedParceling::init()
 	if (InputView.getType() == -1)
 		return;
 	inputView = DM::View(InputView.getName(), InputView.getType(), DM::READ);
-	this->inputView.getAttribute("selected");
+	this->inputView.addAttribute("selected", DM::Attribute::DOUBLE, DM::READ);
 	resultView = DM::View(OutputViewName, DM::FACE, DM::WRITE);
-	this->resultView.addAttribute("selected");
-	this->resultView.addAttribute("generation");
+	this->resultView.addAttribute("selected", DM::Attribute::DOUBLE, DM::WRITE);
+	this->resultView.addAttribute("generation", DM::Attribute::DOUBLE, DM::WRITE);
 	face_nodes = DM::View("FACE_NODES", DM::NODE, DM::WRITE);
-	face_nodes.addAttribute("street_side");
+	face_nodes.addAttribute("street_side", DM::Attribute::DOUBLE, DM::WRITE);
 
 	std::vector<DM::View> datastream;
 
@@ -203,7 +203,7 @@ void AdvancedParceling::run(){
 
 	DM::SpatialNodeHashMap sphs(city,100,false);
 
-	mforeach (DM::Component * c, city->getAllComponentsInView(this->inputView)) {
+	foreach (DM::Component * c, city->getAllComponentsInView(this->inputView)) {
 		DM::System workingSys;
 		DM::Face * f = static_cast<DM::Face *> (c);
 		if (f->getAttribute("selected")->getDouble() < 0.01) {
@@ -221,7 +221,7 @@ void AdvancedParceling::run(){
 	if (!remove_new)
 		return;
 
-	mforeach (DM::Component * c, city->getAllComponentsInView(this->inputView)) {
+	foreach (DM::Component * c, city->getAllComponentsInView(this->inputView)) {
 		DM::Face * f = static_cast<DM::Face *> (c);
 		f->addAttribute("selected", 0);
 	}
@@ -375,7 +375,7 @@ void AdvancedParceling::createFinalFaces(DM::System *workingsys, DM::System * sy
 	int faceCounter_orig = 0;
 
 	if (debug) {
-		mforeach (DM::Component * cmp, workingsys->getAllComponentsInView(v)) {
+		foreach (DM::Component * cmp, workingsys->getAllComponentsInView(v)) {
 			DM::Face * f = dynamic_cast<DM::Face*>(cmp);
 			DM::Face * f1 = TBVectorData::CopyFaceGeometryToNewSystem(f, sys);
 			sys->addComponentToView(f1, DM::View("faces_debug", DM::FACE, DM::WRITE));
@@ -383,7 +383,7 @@ void AdvancedParceling::createFinalFaces(DM::System *workingsys, DM::System * sy
 		}
 	}
 	if (!combined_edges){
-		mforeach (DM::Component * cmp, workingsys->getAllComponentsInView(v)) {
+		foreach (DM::Component * cmp, workingsys->getAllComponentsInView(v)) {
 			DM::Face * f = dynamic_cast<DM::Face*>(cmp);
 			DM::Face * f1 = TBVectorData::CopyFaceGeometryToNewSystem(f, sys);
 			sys->addComponentToView(f1,v);
@@ -419,7 +419,7 @@ void AdvancedParceling::createFinalFaces(DM::System *workingsys, DM::System * sy
 		if (checkIfHoleFilling(orig, f)) {
 			DM::Logger(DM::Debug) << "Remove face";
 			sys->removeComponentFromView(f, v);
-			sys->removeFace(f->getUUID());
+			sys->removeChild(f);
 			removed_faces++;
 		}
 

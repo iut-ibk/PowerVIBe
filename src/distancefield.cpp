@@ -43,7 +43,7 @@ void DistanceField::init() {
 
 	inV = DM::View(centerView, DM::NODE, DM::READ);
 	outV = DM::View(faceView, DM::FACE, DM::READ);
-	outV.addAttribute(attributeName);
+	outV.addAttribute(attributeName, DM::Attribute::DOUBLE, DM::WRITE);
 
 	datastream.push_back(inV);
 	datastream.push_back(outV);
@@ -73,20 +73,18 @@ void DistanceField::run() {
 
 	//CreateSearchTree
 	DM::System * sys = this->getData("sys");
-	std::vector<std::string> uuids = sys->getUUIDs(inV);
-	foreach (std::string uuid, uuids) {
-		DM::Node * n = sys->getNode(uuid);
+	foreach(DM::Component* c, sys->getAllComponentsInView(inV))
+	{
+		DM::Node * n = (DM::Node*)c;
 		points.push_back(Point_d(n->getX(), n->getY()));
 	}
 
 	Tree tree(points.begin(), points.end());
 
-	uuids = sys->getUUIDs(outV);
-	//
-	int NumberOfFaces = uuids.size();
 	//#pragma omp parallel for
-	for (int i = 0; i < NumberOfFaces; i++) {
-		DM::Face * f = sys->getFace(uuids[i]);
+	foreach(DM::Component* c, sys->getAllComponentsInView(outV))
+	{
+		DM::Face * f = (DM::Face*)c;
 		DM::Node cn = DM::CGALGeometry::CalculateCentroid(sys, f);
 
 		Point_d query(cn.getX(),cn.getY());

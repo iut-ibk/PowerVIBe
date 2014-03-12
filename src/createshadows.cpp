@@ -20,7 +20,7 @@
 #include <omp.h>
 #endif
 
-#include <ogr_spatialref.h>
+//#include <ogr_spatialref.h>
 #include <ogrsf_frmts.h>
 
 //#include <CGAL/Exact_predicates_exact_constructions_kernel.h>
@@ -47,25 +47,25 @@ DM_DECLARE_NODE_NAME(CreateShadows, PowerVIBe)
 CreateShadows::CreateShadows()
 {
 	buildings = DM::View("BUILDING", DM::COMPONENT, DM::READ);
-	buildings.getAttribute("Geometry");
+	buildings.addAttribute("Geometry", "Geometry", DM::READ);
 
 	models = DM::View("Geometry", DM::FACE, DM::READ);
-	models.addAttribute("solar_radiation_dayly");
-	models.addAttribute("solar_radiation_hourly");
-	models.addAttribute("solar_hours_dayly");
-	models.addLinks("SunRays", sunrays);
+	models.addAttribute("solar_radiation_dayly", DM::Attribute::TIMESERIES, DM::WRITE);
+	models.addAttribute("solar_radiation_hourly", DM::Attribute::TIMESERIES, DM::WRITE);
+	models.addAttribute("solar_hours_dayly", DM::Attribute::TIMESERIES, DM::WRITE);
+	models.addAttribute("SunRays", sunrays.getName(), DM::WRITE);
 
 	dem = DM::View("SUPERBLOCK", DM::FACE, DM::READ);
 
 	sunrays = DM::View("SunRays", DM::EDGE, DM::WRITE);
 
 	sunnodes = DM::View("SunNodes", DM::NODE, DM::WRITE);
-	sunnodes.addAttribute("sunrays");
-	sunnodes.addAttribute("sunhours");
-	sunnodes.addAttribute("direct_radiation");
+	sunnodes.addAttribute("sunrays", DM::Attribute::TIMESERIES, DM::WRITE);
+	sunnodes.addAttribute("sunhours", DM::Attribute::TIMESERIES, DM::WRITE);
+	sunnodes.addAttribute("direct_radiation", DM::Attribute::TIMESERIES, DM::WRITE);
 
 	mesh = DM::View("SunMesh", DM::FACE, DM::WRITE);
-	mesh.addLinks("SunNodes", sunnodes);
+	mesh.addAttribute("SunNodes", sunnodes.getName(), DM::WRITE);
 
 
 	onlyWindows = false;
@@ -189,38 +189,25 @@ void CreateShadows::run()
 
 	DM::System * city = this->getData("city");
 
-	std::vector<std::string> model_uuids;
-
-	std::vector<std::string> geom_uuids =  city->getUUIDs(models);
-	//Add Digital Elevation May
-	if (!onlyBuildings) {
-		std::vector<std::string> elevation_uuids = city->getUUIDs(dem);
-
-		foreach (std::string uuid, elevation_uuids) {
-			model_uuids.push_back(uuid);
-		}
-	}
+	//std::vector<std::string> model_uuids;
+	std::vector<DM::Component*> model_cmps;
 
 	//Add Digital Elevation May
-	std::vector<std::string> building_uuids = city->getUUIDs(buildings);
+	if (!onlyBuildings)
+		foreach(DM::Component* c, city->getAllComponentsInView(dem))
+			model_cmps.push_back(c);
 
-	foreach (std::string uuid, building_uuids) {
-		DM::Component * cmp = city->getComponent(uuid);
-		std::vector<DM::LinkAttribute> links = cmp->getAttribute("Geometry")->getLinks();
-		foreach (DM::LinkAttribute link, links) {
-			model_uuids.push_back(link.uuid);
-		}
-	}
+	//Add Digital Elevation May
+	foreach(DM::Component* cmp, city->getAllComponentsInView(buildings))
+		foreach(DM::Component* linkedCmp, cmp->getAttribute("Geometry")->getLinkedComponents())
+			model_cmps.push_back(linkedCmp);
 
 	//Init Triangles
 	std::list<Triangle> triangles;
-	//foreach (std::string uuid, geom_uuids) {
-
-	int number_geos = geom_uuids.size();
-	//#pragma omp parallel for
-	for (int i = 0; i < number_geos; i++) {
-		std::string uuid = geom_uuids[i];
-		DM::Face * f = city->getFace(uuid);
+	////#pragma omp parallel for
+	foreach(DM::Component* c, city->getAllComponentsInView(models))
+	{
+		DM::Face* f = (DM::Face*)c;
 		std::string face_type = f->getAttribute("type")->getString();
 		bool exclude = false;
 		foreach (std::string check, faces_not_to_checked) {
@@ -256,8 +243,6 @@ void CreateShadows::run()
 		date = date.addDays(1);
 	}
 
-	int nuuids = model_uuids.size();
-
 
 	std::vector<DM::Node * > sunPos(numberOfDays*24);
 
@@ -271,17 +256,18 @@ void CreateShadows::run()
 	this->caclulateSunPositions(startDate, endDate, sunPos, sunLocs);
 
 
-	int TODO = nuuids;
+	int TODO = model_cmps.size();
 
 	// #pragma omp parallel for
-	for (int i = 0; i < nuuids; i++){
+	//for (int i = 0; i < nuuids; i++){
+	foreach(DM::Component* c, model_cmps)
+	{
 		//CreateInitalSolarRadiationVector
 		std::vector<double> solarRadiation(numberOfDays, 0);
 		std::vector<double> solarHours(numberOfDays, 0);
-		std::string uuid = model_uuids[i];
 		//DM::Logger(DM::Debug) << "Face " << uuid;
 		//Create Face Point
-		DM::Face * f = city->getFace(uuid);
+		DM::Face * f = (DM::Face*)c;
 		std::string face_type = f->getAttribute("type")->getString();
 		bool exclude = false;
 		foreach (std::string check, faces_not_to_checked) {
