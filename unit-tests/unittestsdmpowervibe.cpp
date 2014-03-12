@@ -150,7 +150,7 @@ TEST_F(UnitTestsDMPowerVIBe, TestFinalFaces_final_2_holes) {
 	int face_counter = 0;
 	int hole_counter = 0;
 	double area = 0;
-	mforeach (DM::Component * c, result_sys->getAllComponentsInView(resultView)) {
+	foreach (DM::Component * c, result_sys->getAllComponentsInView(resultView)) {
 		DM::Face * f = static_cast<DM::Face*>(c);
 		DM::Logger(DM::Debug) << "face ";
 		foreach (DM::Node * n, f->getNodePointers()) {
@@ -218,7 +218,7 @@ TEST_F(UnitTestsDMPowerVIBe, TestParceling_final_with_holes_at_border) {
 
 	double area = 0;
 	DM::SpatialNodeHashMap sphs(sys,100,false);
-	mforeach (DM::Component * c, sys->getAllComponentsInView(inputView)) {
+	foreach (DM::Component * c, sys->getAllComponentsInView(inputView)) {
 		DM::Face * f = static_cast<DM::Face*>(c);
 		parceling.createSubdevision(sys, f, 0);
 		parceling.createFinalFaces(sys, result_sys, f, resultView, sphs);
@@ -226,7 +226,7 @@ TEST_F(UnitTestsDMPowerVIBe, TestParceling_final_with_holes_at_border) {
 	}
 	int counter = 0;
 	double parcel_area = 0;
-	mforeach (DM::Component * c, result_sys->getAllComponentsInView(resultView)) {
+	foreach (DM::Component * c, result_sys->getAllComponentsInView(resultView)) {
 		DM::Face * f = static_cast<DM::Face*>(c);
 		parcel_area+=DM::CGALGeometry::CalculateArea2D(f);
 		counter++;
@@ -269,14 +269,14 @@ TEST_F(UnitTestsDMPowerVIBe, TestParceling_final_with_small_hole) {
 
 	double area = 0;
 	DM::SpatialNodeHashMap sphs(sys,100,false);
-	mforeach (DM::Component * c, sys->getAllComponentsInView(inputView)) {
+	foreach (DM::Component * c, sys->getAllComponentsInView(inputView)) {
 		DM::Face * f = static_cast<DM::Face*>(c);
 		parceling.createSubdevision(sys, f, 0);
 		parceling.createFinalFaces(sys, result_sys, f, resultView, sphs);
 		area = DM::CGALGeometry::CalculateArea2D(f);
 	}
 	double parcel_area_input = 0;
-	mforeach (DM::Component * c, sys->getAllComponentsInView(resultView)) {
+	foreach (DM::Component * c, sys->getAllComponentsInView(resultView)) {
 		DM::Face * f = static_cast<DM::Face*>(c);
 		DM::Logger(DM::Debug) << DM::CGALGeometry::CalculateArea2D(f);
 		parcel_area_input+=DM::CGALGeometry::CalculateArea2D(f);
@@ -285,7 +285,7 @@ TEST_F(UnitTestsDMPowerVIBe, TestParceling_final_with_small_hole) {
 
 	int counter = 0;
 	double parcel_area = 0;
-	mforeach (DM::Component * c, result_sys->getAllComponentsInView(resultView)) {
+	foreach (DM::Component * c, result_sys->getAllComponentsInView(resultView)) {
 		DM::Face * f = static_cast<DM::Face*>(c);
 		DM::Logger(DM::Debug) << DM::CGALGeometry::CalculateArea2D(f);
 		parcel_area+=DM::CGALGeometry::CalculateArea2D(f);
@@ -316,7 +316,7 @@ TEST_F(UnitTestsDMPowerVIBe, TestParceling_final_with_holes) {
 
 	double area = 0;
 	DM::SpatialNodeHashMap sphs(sys,100,false);
-	mforeach (DM::Component * c, sys->getAllComponentsInView(inputView)) {
+	foreach (DM::Component * c, sys->getAllComponentsInView(inputView)) {
 		DM::Face * f = static_cast<DM::Face*>(c);
 		parceling.createSubdevision(sys, f, 0);
 		parceling.createFinalFaces(sys, result_sys, f, resultView,sphs);
@@ -324,7 +324,7 @@ TEST_F(UnitTestsDMPowerVIBe, TestParceling_final_with_holes) {
 	}
 	int counter = 0;
 	double parcel_area = 0;
-	mforeach (DM::Component * c, result_sys->getAllComponentsInView(resultView)) {
+	foreach (DM::Component * c, result_sys->getAllComponentsInView(resultView)) {
 		DM::Face * f = static_cast<DM::Face*>(c);
 		parcel_area+=DM::CGALGeometry::CalculateArea2D(f);
 		counter++;
@@ -354,14 +354,14 @@ TEST_F(UnitTestsDMPowerVIBe, TestParceling_with_holes) {
 	parceling.setInputView(inputView);
 
 	double area = 0;
-	mforeach (DM::Component * c, sys->getAllComponentsInView(inputView)) {
+	foreach (DM::Component * c, sys->getAllComponentsInView(inputView)) {
 		DM::Face * f = static_cast<DM::Face*>(c);
 		parceling.createSubdevision(sys, f, 0);
 		area = DM::CGALGeometry::CalculateArea2D(f);
 	}
 	int counter = 0;
 	double parcel_area = 0;
-	mforeach (DM::Component * c, sys->getAllComponentsInView(resultView)) {
+	foreach (DM::Component * c, sys->getAllComponentsInView(resultView)) {
 		DM::Face * f = static_cast<DM::Face*>(c);
 		parcel_area+=DM::CGALGeometry::CalculateArea2D(f);
 		counter++;
@@ -395,7 +395,7 @@ TEST_F(UnitTestsDMPowerVIBe, TestParceling) {
 
 	double area = 0;
 	DM::SpatialNodeHashMap sphs(sys,100,false);
-	mforeach (DM::Component * c, sys->getAllComponentsInView(inputView)) {
+	foreach (DM::Component * c, sys->getAllComponentsInView(inputView)) {
 		DM::Face * f = static_cast<DM::Face*>(c);
 		parceling.createSubdevision(sys, f, 0);
 		area = DM::CGALGeometry::CalculateArea2D(f);
@@ -403,7 +403,7 @@ TEST_F(UnitTestsDMPowerVIBe, TestParceling) {
 	}
 	int counter = 0;
 	double parcel_area = 0;
-	mforeach (DM::Component * c, sys->getAllComponentsInView(resultView)) {
+	foreach (DM::Component * c, sys->getAllComponentsInView(resultView)) {
 		DM::Face * f = static_cast<DM::Face*>(c);
 		parcel_area+=DM::CGALGeometry::CalculateArea2D(f);
 		counter++;
@@ -417,7 +417,7 @@ TEST_F(UnitTestsDMPowerVIBe, TestParceling) {
 	int face_counter = 0;
 	int hole_counter = 0;
 	double area_end = 0;
-	mforeach (DM::Component * c, ReturnSys->getAllComponentsInView(resultView)) {
+	foreach (DM::Component * c, ReturnSys->getAllComponentsInView(resultView)) {
 		DM::Face * f = static_cast<DM::Face*>(c);
 		foreach (DM::Node * n, f->getNodePointers()) {
 			DM::Logger(DM::Debug) << n->getX() << "\t"<< n->getY()<< "\t"<< n->getZ();
@@ -472,7 +472,7 @@ TEST_F(UnitTestsDMPowerVIBe, AP_Holes_createFinalFaces_array) {
 	vF.push_back(n4);
 
 	DM::Face * bF = sys->addFace(vF, DM::View("BB", DM::FACE));
-	mforeach (DM::Component * c, sys->getAllComponentsInView(v)) {
+	foreach (DM::Component * c, sys->getAllComponentsInView(v)) {
 		DM::Face * f = static_cast<DM::Face*>(c);
 		foreach(DM::Face * h, f->getHolePointers()) {
 			bF->addHole(h);
@@ -485,7 +485,7 @@ TEST_F(UnitTestsDMPowerVIBe, AP_Holes_createFinalFaces_array) {
 	int face_counter = 0;
 	int hole_counter = 0;
 	double area = 0;
-	mforeach (DM::Component * c, ReturnSys->getAllComponentsInView(v)) {
+	foreach (DM::Component * c, ReturnSys->getAllComponentsInView(v)) {
 		DM::Face * f = static_cast<DM::Face*>(c);
 		DM::Logger(DM::Debug) << "face ";
 		foreach (DM::Node * n, f->getNodePointers()) {
@@ -551,7 +551,7 @@ TEST_F(UnitTestsDMPowerVIBe, TestFinalFaces_final_small_hole) {
 	int hole_counter = 0;
 	double area = 0;
 	int street = 0;
-	mforeach (DM::Component * c, result_sys->getAllComponentsInView(resultView)) {
+	foreach (DM::Component * c, result_sys->getAllComponentsInView(resultView)) {
 		DM::Face * f = static_cast<DM::Face*>(c);
 		foreach (DM::Node * n, f->getNodePointers()) {
 			street+=n->getAttribute("street_side")->getDouble();
@@ -601,7 +601,7 @@ TEST_F(UnitTestsDMPowerVIBe, AP_Holes_createFinalFaces) {
 	int hole_counter = 0;
 	double area = 0;
 	int street = 0;
-	mforeach (DM::Component * c, ReturnSys->getAllComponentsInView(v)) {
+	foreach (DM::Component * c, ReturnSys->getAllComponentsInView(v)) {
 		DM::Face * f = static_cast<DM::Face*>(c);
 		foreach (DM::Node * n, f->getNodePointers()) {
 			street+=n->getAttribute("street_side")->getDouble();
