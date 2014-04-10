@@ -84,7 +84,7 @@ void PlaceJobsDTU::run()
 			job->addAttribute("sector_id", 1);
 			job->addAttribute("building_type", 1);
 
-			DM::Attribute lAttr("BUILDING");
+			DM::Attribute lAttr("BUILDING", DM::Attribute::LINK);
 			lAttr.addLink(building, "BUILDING");
 			job->addAttribute(lAttr);
 

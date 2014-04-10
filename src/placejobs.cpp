@@ -129,7 +129,7 @@ void PlaceJobs::run() {
 				job->addAttribute("sector_id", 1);
 				job->addAttribute("building_type", 1);
 
-				Attribute lAttr("BUILDING");
+				Attribute lAttr("BUILDING", Attribute::LINK);
 				lAttr.addLink(b, "BUILDING");
 				job->addAttribute(lAttr);
 				city->addComponent(job, jobs);

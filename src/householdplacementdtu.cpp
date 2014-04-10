@@ -95,7 +95,7 @@ void HouseholdPlacementDTU::run()
 			h->addAttribute("cars", children);
 
 			//Link Household - Building
-			Attribute linkB("BUILDING");
+			Attribute linkB("BUILDING", Attribute::LINK);
 			linkB.addLink(building, buildings.getName());
 			h->addAttribute(linkB);
 
@@ -109,7 +109,7 @@ void HouseholdPlacementDTU::run()
 				p->addAttribute("id", person_id++);
 
 				//Link Person - Houshold
-				Attribute l("HOUSEHOLD");
+				Attribute l("HOUSEHOLD", Attribute::LINK);
 				l.addLink(h, households.getName());
 				p->addAttribute(l);
 
